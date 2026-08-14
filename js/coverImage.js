@@ -1,5 +1,5 @@
-import { els } from './dom.js?v=28';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=28';
+import { els } from './dom.js?v=29';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=29';
 
 // Routes cover images through our own /img/<path> proxy (a Cloudflare Worker) instead
 // of VNDB's CDN directly. The proxy caches each image in R2 on first request and serves
