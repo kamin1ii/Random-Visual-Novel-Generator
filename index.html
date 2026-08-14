@@ -21,17 +21,16 @@
 <meta property="og:description" content="A random visual novel generator and browser built on the VNDB API. Filter by score, tags, language, and length, generate a randomized list, and browse recommendations one at a time.">
 <meta property="og:url" content="https://kamin1ii.github.io/Random-Visual-Novel-Generator/">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="css/base.css?v=8">
-<link rel="stylesheet" href="css/layout.css?v=8">
-<link rel="stylesheet" href="css/components.css?v=8">
-<link rel="stylesheet" href="css/responsive.css?v=8">
+<link rel="stylesheet" href="css/base.css?v=9">
+<link rel="stylesheet" href="css/layout.css?v=9">
+<link rel="stylesheet" href="css/components.css?v=9">
+<link rel="stylesheet" href="css/responsive.css?v=9">
 </head>
 <body>
 
 <h2 class="sr-only">A visual novel recommendation tool. Set filters for minimum score, English availability, and tags to include or exclude, generate a randomized list from VNDB, and browse the results one at a time.</h2>
 
 <div class="masthead">
-  <div class="eyebrow">Powered by VNDB</div>
   <h1>Random Visual Novel Generator</h1>
   <p>Set your filters, generate a random list, browse recommendations one at a time.</p>
 </div>
@@ -107,7 +106,7 @@
     <div class="field">
       <label for="excludeInput">Exclude tags</label>
       <div class="tag-input-wrap">
-        <input type="text" id="excludeInput" placeholder="e.g. rape" autocomplete="off">
+        <input type="text" id="excludeInput" placeholder="e.g. gore" autocomplete="off">
         <span class="tag-status" id="excludeStatus"></span>
         <div class="suggest" id="excludeSuggest"></div>
       </div>
@@ -173,6 +172,6 @@
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=8"></script>
+<script type="module" src="js/main.js?v=9"></script>
 </body>
 </html>

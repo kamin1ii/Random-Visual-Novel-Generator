@@ -1,9 +1,9 @@
-import { els } from './dom.js?v=7';
-import { state } from './state.js?v=7';
-import { runQuery } from './api.js?v=7';
-import { buildFilters, describeFilters } from './filters.js?v=7';
-import { makeTagPicker, renderChips } from './tagPicker.js?v=7';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=7';
+import { els } from './dom.js?v=9';
+import { state } from './state.js?v=9';
+import { runQuery } from './api.js?v=9';
+import { buildFilters, describeFilters } from './filters.js?v=9';
+import { makeTagPicker, renderChips } from './tagPicker.js?v=9';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=9';
 
 els.minRating.addEventListener('input', () => {
   const v = parseFloat(els.minRating.value);
