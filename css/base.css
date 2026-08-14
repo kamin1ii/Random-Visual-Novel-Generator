@@ -64,6 +64,12 @@ select, input[type=number], input[type=text]{
   border-radius:8px;
 }
 select:focus-visible, input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+/* select specifically overridden: Chrome treats picking from its native dropdown list
+   as warranting :focus-visible even via mouse (unlike other inputs, where it correctly
+   only fires for keyboard nav), so the outline above ends up looking like a stuck
+   highlight after every mouse selection. A border-color change instead is a much more
+   subtle acknowledgment that still gives keyboard users some visual feedback. */
+select:focus-visible{outline:none;border-color:var(--accent);}
 
 /* Remove the browser's native number input spin buttons. They render with their own
    OS styled box (often a white hover state, like in Chrome and Edge) that ignores
