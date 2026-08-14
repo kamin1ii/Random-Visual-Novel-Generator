@@ -1,6 +1,6 @@
-import { state } from './state.js?v=10';
-import { els } from './dom.js?v=10';
-import { LENGTH_LABELS } from './constants.js?v=10';
+import { state } from './state.js?v=15';
+import { els } from './dom.js?v=15';
+import { LENGTH_LABELS } from './constants.js?v=15';
 
 export function buildFilters(){
   const clauses = [["has_description","=",1]]; // otherwise the card could show a title with nothing to say about it
