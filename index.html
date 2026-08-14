@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Random Visual Novel Generator</title>
+<link rel="stylesheet" href="css/base.css?v=7">
+<link rel="stylesheet" href="css/layout.css?v=7">
+<link rel="stylesheet" href="css/components.css?v=7">
+<link rel="stylesheet" href="css/responsive.css?v=7">
+</head>
+<body>
+
+<h2 class="sr-only">A visual novel recommendation tool. Set filters for minimum score, English availability, and tags to include or exclude, generate a randomized list from VNDB, and browse the results one at a time.</h2>
+
+<div class="masthead">
+  <div class="eyebrow">Powered by VNDB</div>
+  <h1>Random Visual Novel Generator</h1>
+  <p>Set your filters, generate a random list, browse recommendations one at a time.</p>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="field">
+      <label for="minRating">Minimum score</label>
+      <div class="slider-row">
+        <input type="range" id="minRating" min="0" max="9.5" step="0.5" value="0">
+        <span class="slider-val" id="minRatingVal">Any</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="minVotes">Minimum votes</label>
+      <input type="number" id="minVotes" min="0" step="5" value="10">
+    </div>
+
+    <div class="field">
+      <div class="check-row">
+        <input type="checkbox" id="originalJapaneseOnly" checked>
+        <label for="originalJapaneseOnly">Originally Japanese</label>
+      </div>
+      <div class="check-row" style="margin-top:6px;">
+        <input type="checkbox" id="englishOnly" checked>
+        <label for="englishOnly">Has a full English release</label>
+      </div>
+      <div class="check-row subtle-check">
+        <input type="checkbox" id="includePartialEnglish">
+        <label for="includePartialEnglish">Include partial English patches</label>
+      </div>
+      <div class="check-row subtle-check">
+        <input type="checkbox" id="includeMTL">
+        <label for="includeMTL">Include MTL translation</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Length</label>
+      <div class="length-grid" id="lengthGrid">
+        <button type="button" class="len-toggle" data-len="1">Very short</button>
+        <button type="button" class="len-toggle" data-len="2">Short</button>
+        <button type="button" class="len-toggle" data-len="3">Medium</button>
+        <button type="button" class="len-toggle" data-len="4">Long</button>
+        <button type="button" class="len-toggle" data-len="5">Very long</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Release year range</label>
+      <div class="row">
+        <input type="number" id="yearFrom" placeholder="From year" min="1980" max="2030" aria-label="Earliest release year">
+        <input type="number" id="yearTo" placeholder="To year" min="1980" max="2030" aria-label="Latest release year">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="includeInput">Include tags</label>
+      <div class="tag-input-wrap">
+        <input type="text" id="includeInput" placeholder="e.g. protagonist with a face" autocomplete="off">
+        <span class="tag-status" id="includeStatus"></span>
+        <div class="suggest" id="includeSuggest"></div>
+      </div>
+      <div class="chips" id="includeChips"></div>
+      <div class="length-grid" id="includeModeToggle" style="margin-top:6px;">
+        <button type="button" class="len-toggle active" data-mode="and">Match all (AND)</button>
+        <button type="button" class="len-toggle" data-mode="or">Match any (OR)</button>
+      </div>
+      <p class="subnote">Pick a match from the dropdown to add it. Add as many as you like.</p>
+    </div>
+
+    <div class="field">
+      <label for="excludeInput">Exclude tags</label>
+      <div class="tag-input-wrap">
+        <input type="text" id="excludeInput" placeholder="e.g. rape" autocomplete="off">
+        <span class="tag-status" id="excludeStatus"></span>
+        <div class="suggest" id="excludeSuggest"></div>
+      </div>
+      <div class="chips" id="excludeChips"></div>
+      <div class="length-grid" id="excludeModeToggle" style="margin-top:6px;">
+        <button type="button" class="len-toggle" data-mode="and">Match all (AND)</button>
+        <button type="button" class="len-toggle active" data-mode="or">Match any (OR)</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="listSize">List size</label>
+      <select id="listSize">
+        <option value="50" selected>50 titles</option>
+        <option value="100">100 titles</option>
+        <option value="150">150 titles</option>
+        <option value="200">200 titles</option>
+        <option value="300">300 titles</option>
+      </select>
+      <p class="subnote">200 to 300 titles may take a few seconds to build.</p>
+    </div>
+
+    <button class="generate-btn" id="generateBtn" type="button">Generate list</button>
+    <button class="reset-link" id="resetBtn" type="button">Reset filters</button>
+  </div>
+
+  <div class="main-col">
+    <p class="status-line" id="statusLine">Loading a pick to start you off…</p>
+
+    <div class="nav-row">
+      <button class="nav-btn" id="prevBtn" type="button" disabled>← Prev</button>
+      <span class="counter" id="counter">·</span>
+      <button class="nav-btn" id="nextBtn" type="button" disabled>Next →</button>
+    </div>
+
+    <div class="card" id="card" role="group" aria-label="Visual novel recommendation, use the left and right arrow keys to browse">
+      <div class="cover-wrap">
+        <a id="coverLink" href="#" target="_blank" rel="noopener" aria-label="Open on VNDB">
+          <img id="cover" alt="" fetchpriority="high">
+        </a>
+        <div class="cover-fallback" id="coverFallback">no cover art on file</div>
+        <div class="cover-loading" id="coverLoading" aria-hidden="true"><span class="spinner"></span></div>
+        <button class="reveal-btn" id="revealBtn" type="button"><span>sensitive image, click to reveal</span></button>
+      </div>
+      <div class="content-col">
+        <div class="nameplate">
+          <span class="main" id="titleMain">Loading…</span>
+          <span class="alt" id="titleAlt"></span>
+        </div>
+        <div class="stat-strip" id="statStrip"></div>
+        <div class="tagrow" id="tagRow"></div>
+        <p class="dialogue" id="dialogue"></p>
+        <div class="card-footer">
+          <a href="#" class="vndb-link" id="vndbLink" target="_blank" rel="noopener">Open on VNDB ↗</a>
+          <span class="hint">click card or press → for next</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="active-filters" id="activeFilters"></div>
+
+    <p class="footer-credit">Data via <a href="https://vndb.org" target="_blank" rel="noopener">vndb.org</a>.</p>
+  </div>
+</div>
+
+<script type="module" src="js/main.js?v=7"></script>
+</body>
+</html>

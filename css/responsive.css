@@ -1,0 +1,8 @@
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr;}
+  .sidebar{position:static;}
+  .card{flex-direction:column;height:auto;}
+  .cover-wrap{width:100%;height:auto;aspect-ratio:3/4;}
+  .content-col{padding:18px;}
+  .dialogue{overflow-y:visible;max-height:none;}
+}

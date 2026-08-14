@@ -1,0 +1,21 @@
+export const API = 'https://api.vndb.org/kana';
+
+// VNDB requires every field to be named explicitly, there's no "give me everything" option.
+export const VN_FIELDS = "title, alttitle, image.url, image.sexual, released, rating, votecount, length_minutes, length, description, tags.name, tags.category, tags.spoiler, tags.rating, platforms, languages";
+
+// VNDB returns platform availability as short codes, this maps them to something readable.
+export const PLATFORM_LABELS = {
+  win:'PC', lin:'Linux', mac:'Mac', ps1:'PS1', ps2:'PS2', ps3:'PS3', ps4:'PS4', ps5:'PS5',
+  psp:'PSP', psv:'PS Vita', and:'Android', ios:'iOS', web:'Web', swi:'Switch',
+  n3d:'3DS', nds:'DS', drc:'Wii U', dvd:'DVD Player', bdp:'Blu-ray', dos:'DOS', xb1:'Xbox One',
+  xxx:'Xbox 360', xxc:'Xbox', oth:'Other'
+};
+
+// VNDB's precise length_minutes isn't always available, this is the fallback 1-5 scale.
+export const LENGTH_LABELS = {1:'very short',2:'short',3:'medium',4:'long',5:'very long'};
+
+// Covers scoring at or above this get blurred behind a reveal button rather than shown outright.
+export const SENSITIVE_THRESHOLD = 1.2;
+
+// VNDB's hard cap per request, anything larger has to be split across multiple calls.
+export const PER_PAGE = 100;

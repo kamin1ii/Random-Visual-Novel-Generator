@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500&family=Sora:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg-0:#0a0e17;
+  --bg-1:#0f1626;
+  --panel:#121b2e;
+  --panel-2:#16213a;
+  --panel-edge:#22314f;
+  --gold:#e2b256;
+  --gold-dim:#a9863f;
+  --accent:#5b9bd5;
+  --text:#f2eefc;
+  --muted:#8fa0bd;
+  --danger:#e2795a;
+}
+
+*{box-sizing:border-box;}
+
+html,body{
+  margin:0;
+  min-height:100%;
+  background:
+    radial-gradient(ellipse 900px 500px at 50% -10%, #16233d 0%, transparent 60%),
+    var(--bg-0);
+  color:var(--text);
+  font-family:'Sora',sans-serif;
+}
+
+body{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:28px 20px 50px;
+}
+
+.masthead{
+  text-align:center;margin-bottom:28px;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--panel-edge);
+  width:100%;max-width:1320px;
+}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.24em;
+  color:var(--gold-dim);
+  text-transform:uppercase;
+}
+.masthead h1{
+  font-family:'Cormorant Garamond',serif;
+  font-weight:700;
+  font-style:italic;
+  font-size:clamp(26px,5vw,36px);
+  margin:6px 0 6px;
+}
+.masthead p{font-size:13px;color:var(--muted);margin:0;}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
