@@ -1,11 +1,11 @@
-import { vndbQuery } from './api.js?v=21';
+import { vndbQuery } from './api.js?v=22';
 
 export function renderChips(listArr, chipsEl, chipClass){
   chipsEl.innerHTML = '';
   listArr.forEach((tag, i) => {
     const span = document.createElement('span');
     span.className = 'chip ' + chipClass;
-    span.innerHTML = tag.name + ' ';
+    span.textContent = tag.name + ' ';
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = '×';
@@ -65,7 +65,11 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     filtered.forEach(tag => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.innerHTML = tag.name + '<small>' + tag.category + '</small>';
+      const nameSpan = document.createTextNode(tag.name);
+      const catSmall = document.createElement('small');
+      catSmall.textContent = tag.category;
+      btn.appendChild(nameSpan);
+      btn.appendChild(catSmall);
       btn.addEventListener('click', () => pick(tag));
       suggestEl.appendChild(btn);
     });
