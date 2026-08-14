@@ -1,9 +1,9 @@
-import { els } from './dom.js?v=9';
-import { state } from './state.js?v=9';
-import { runQuery } from './api.js?v=9';
-import { buildFilters, describeFilters } from './filters.js?v=9';
-import { makeTagPicker, renderChips } from './tagPicker.js?v=9';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=9';
+import { els } from './dom.js?v=10';
+import { state } from './state.js?v=10';
+import { runQuery } from './api.js?v=10';
+import { buildFilters, describeFilters } from './filters.js?v=10';
+import { makeTagPicker, renderChips } from './tagPicker.js?v=10';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=10';
 
 els.minRating.addEventListener('input', () => {
   const v = parseFloat(els.minRating.value);
@@ -98,7 +98,7 @@ async function loadInitialPick(){
       state.list = results;
       state.index = 0;
       state.isPlaceholder = true; // distinguishes this from a real generated list, disables nav/click-to-advance
-      setStatus('A random pick to start you off. Set filters on the left and generate your own list anytime.');
+      setStatus('A random pick to start. Set filters on the left and generate your own list.');
       showCurrent();
     } else {
       setStatus('Set your filters and generate a list to begin.');

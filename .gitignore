@@ -9,5 +9,5 @@ ehthumbs.db
 .idea/
 *.swp
 
-# Local env / secrets
+# Local env / secrets, if any get added later
 .env
