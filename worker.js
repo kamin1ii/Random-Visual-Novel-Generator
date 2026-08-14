@@ -47,6 +47,7 @@ async function handleImageProxy(request, env, ctx){
       headers: {
         'Content-Type': cached.httpMetadata?.contentType || 'image/jpeg',
         'Cache-Control': 'public, max-age=31536000, immutable',
+        'X-Cache': 'HIT', // served from R2, VNDB was never contacted for this request
       },
     });
   }
@@ -74,6 +75,7 @@ async function handleImageProxy(request, env, ctx){
     headers: {
       'Content-Type': contentType,
       'Cache-Control': 'public, max-age=31536000, immutable',
+      'X-Cache': 'MISS', // this request actually went out to VNDB
     },
   });
 }
