@@ -39,13 +39,6 @@ body{
   border-bottom:1px solid var(--panel-edge);
   width:100%;max-width:1320px;
 }
-.eyebrow{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:11px;
-  letter-spacing:.24em;
-  color:var(--gold-dim);
-  text-transform:uppercase;
-}
 .masthead h1{
   font-family:'Cormorant Garamond',serif;
   font-weight:700;

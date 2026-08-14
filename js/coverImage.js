@@ -1,5 +1,5 @@
-import { els } from './dom.js?v=7';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=7';
+import { els } from './dom.js?v=9';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=9';
 
 // Caches Image() objects for covers the person hasn't reached yet, so navigating there
 // later is instant instead of waiting on a fresh download. Capped in size so a long
