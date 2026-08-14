@@ -1,4 +1,4 @@
-import { vndbQuery } from './api.js?v=30';
+import { vndbQuery } from './api.js?v=32';
 
 export function renderChips(listArr, chipsEl, chipClass){
   chipsEl.innerHTML = '';
@@ -165,15 +165,25 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     if(!suggestEl.contains(e.target) && e.target !== inputEl) hide();
   });
 
-  // The dropdown's fixed position is only correct at the moment it was set. Listening
-  // on window with capture:true catches scrolling anywhere, the whole page scrolling
-  // *and* the sidebar's own internal scroll, since scroll events don't bubble up to
-  // window on their own, capture is what lets a single listener here catch both rather
-  // than needing a separate one for every scrollable ancestor. Excludes the dropdown's
-  // own internal scroll (it has its own overflow-y:auto for long results lists), since
-  // scrolling through the results themselves shouldn't close the results.
+  // The dropdown's fixed position is only correct at the moment it was set, so it needs
+  // continuous updates while scrolling, not just a one-time position. Listening on
+  // window with capture:true catches scrolling anywhere, the whole page scrolling *and*
+  // the sidebar's own internal scroll, since scroll events don't bubble up to window on
+  // their own, capture is what lets a single listener here catch both rather than
+  // needing a separate one for every scrollable ancestor. Excludes the dropdown's own
+  // internal scroll (it has its own overflow-y:auto for long results lists), since
+  // scrolling through the results themselves doesn't move the input it's anchored to.
+  let scrollRaf = null;
   window.addEventListener('scroll', (e) => {
     if(suggestEl.contains(e.target)) return;
-    hide();
+    if(!suggestEl.classList.contains('open')) return;
+    // A fast scroll can fire this far more often than the screen actually redraws,
+    // requestAnimationFrame caps the real work to once per frame regardless of how many
+    // scroll events land in that window, rather than repositioning redundantly on each one.
+    if(scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      positionSuggest();
+      scrollRaf = null;
+    });
   }, true);
 }

@@ -1,4 +1,4 @@
-import { els } from './dom.js?v=30';
+import { els } from './dom.js?v=32';
 
 // Self-contained "confirm before revealing explicit art" flow: the button that
 // triggers it, the confirmation dialog, and the persistent "ask me / don't ask me"
