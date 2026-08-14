@@ -22,10 +22,10 @@
 .chip button{background:none;border:none;color:inherit;cursor:pointer;font-size:13px;line-height:1;padding:2px;}
 
 .suggest{
-  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  position:fixed; /* positioned via JS (top/left/width) to track the input on screen, rather than relative to .tag-input-wrap, so it isn't clipped by .sidebar-fields' scroll boundary */
   background:var(--panel-2);
   border:1px solid var(--panel-edge);
-  border-radius:8px;overflow:hidden;z-index:10;
+  border-radius:8px;overflow:hidden;z-index:50;
   max-height:200px;overflow-y:auto;display:none;
   scrollbar-width:thin;
   scrollbar-color:var(--panel-edge) transparent;
@@ -34,6 +34,7 @@
 .suggest::-webkit-scrollbar-track{background:transparent;}
 .suggest::-webkit-scrollbar-thumb{background:var(--panel-edge);border-radius:20px;}
 .suggest::-webkit-scrollbar-thumb:hover{background:var(--gold-dim);}
+.suggest::-webkit-scrollbar-button{display:none;}
 .suggest.open{display:block;}
 .suggest button{
   display:block;width:100%;text-align:left;background:none;border:none;
