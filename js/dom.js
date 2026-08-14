@@ -45,5 +45,8 @@ export const els = {
   revealRemember: document.getElementById('revealRemember'),
   revealCancel: document.getElementById('revealCancel'),
   revealConfirm: document.getElementById('revealConfirm'),
-  revealPrefCheckbox: document.getElementById('revealPrefCheckbox')
+  revealPrefCheckbox: document.getElementById('revealPrefCheckbox'),
+  noResultsModal: document.getElementById('noResultsModal'),
+  noResultsBody: document.getElementById('noResultsBody'),
+  noResultsOk: document.getElementById('noResultsOk')
 };
