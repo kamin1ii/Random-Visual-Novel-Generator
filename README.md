@@ -6,7 +6,7 @@ A random visual novel generator and browser built on the [VNDB](https://vndb.org
 
 Vanilla HTML, CSS, and ES modules.
 
-![Screenshot](screenshots/screenshot.png)
+![Screenshot](https://i.postimg.cc/vmRSM20L/screenshot.png)
 
 ## Features
 
