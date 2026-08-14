@@ -8,6 +8,16 @@ export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
 
+    // Redirecting www -> apex here, in code, rather than via a Cloudflare Redirect
+    // Rule: Redirect Rules can silently fail to fire when their target is itself a
+    // Workers Custom Domain (a known conflict between the two features), so this is
+    // handled directly instead, guaranteed to run since it's the first thing the
+    // Worker does, with no dependency on Cloudflare's rule execution order.
+    if(url.hostname === 'www.randomvn.org'){
+      url.hostname = 'randomvn.org';
+      return Response.redirect(url.toString(), 301);
+    }
+
     if(url.pathname.startsWith('/img/')){
       return handleImageProxy(url, env, ctx);
     }
