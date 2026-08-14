@@ -1,5 +1,13 @@
-import { els } from './dom.js?v=19';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=19';
+import { els } from './dom.js?v=20';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=20';
+
+// Routes cover images through our own /img proxy (a Cloudflare Pages Function) instead
+// of VNDB's CDN directly. The proxy caches each image in R2 on first request and serves
+// every request after that from our own storage, so VNDB only ever sees one request per
+// unique cover, across all visitors combined, not once per visitor per view.
+function proxiedImageUrl(vndbUrl){
+  return '/img?url=' + encodeURIComponent(vndbUrl);
+}
 
 // Caches Image() objects for covers the person hasn't reached yet, so navigating there
 // later is instant instead of waiting on a fresh download. Capped in size so a long
@@ -22,7 +30,7 @@ function preloadImages(vns){
     if(preloadCache.has(vn.id)) return;
     const img = new Image();
     img.fetchPriority = 'low';
-    img.src = vn.image.url;
+    img.src = proxiedImageUrl(vn.image.url);
     rememberPreload(vn.id, img);
   });
 }
@@ -119,5 +127,5 @@ export function showCover(vn){
     els.coverLoading.classList.remove('show');
     els.coverFallback.style.display = 'flex';
   }, IMAGE_LOAD_TIMEOUT_MS);
-  els.cover.src = vn.image.url;
+  els.cover.src = proxiedImageUrl(vn.image.url);
 }
