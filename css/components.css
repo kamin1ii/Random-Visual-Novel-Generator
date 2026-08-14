@@ -293,7 +293,8 @@ input[type=checkbox]:disabled{opacity:.4;cursor:default;}
 .filter-chip{
   font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);
   background:var(--panel-2);border:1px solid var(--panel-edge);
-  padding:4px 10px;border-radius:20px;white-space:nowrap;
+  padding:4px 10px;border-radius:20px;
+  max-width:100%;white-space:normal;overflow-wrap:break-word;
 }
 
 .footer-credit{text-align:center;font-size:11px;color:var(--muted);margin-top:18px;}
