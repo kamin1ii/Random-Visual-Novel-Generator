@@ -1,11 +1,11 @@
-import { els } from './dom.js?v=20';
-import { state } from './state.js?v=20';
-import { runQuery } from './api.js?v=20';
-import { buildFilters, describeFilters } from './filters.js?v=20';
-import { resetFilterUI } from './filterControls.js?v=20';
-import { makeTagPicker } from './tagPicker.js?v=20';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=20';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=20';
+import { els } from './dom.js?v=21';
+import { state } from './state.js?v=21';
+import { runQuery } from './api.js?v=21';
+import { buildFilters, describeFilters } from './filters.js?v=21';
+import { resetFilterUI } from './filterControls.js?v=21';
+import { makeTagPicker } from './tagPicker.js?v=21';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=21';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=21';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');

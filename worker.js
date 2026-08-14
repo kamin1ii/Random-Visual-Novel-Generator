@@ -1,45 +1,35 @@
 // Single entry point for the whole Worker. Cloudflare's Workers-with-static-assets
 // model doesn't have Pages' automatic /functions folder routing, so this script has to
-// check the path itself: /img goes to the caching proxy below, everything else falls
-// through to env.ASSETS, which serves the static site (same files GitHub Pages serves).
+// check the path itself: anything under /img/ goes to the caching proxy below,
+// everything else falls through to env.ASSETS, which serves the static site (same
+// files GitHub Pages serves).
 
 export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
 
-    if(url.pathname === '/img'){
-      return handleImageProxy(request, env, ctx);
+    if(url.pathname.startsWith('/img/')){
+      return handleImageProxy(url, env, ctx);
     }
 
     return env.ASSETS.fetch(request);
   },
 };
 
-async function handleImageProxy(request, env, ctx){
-  const requestUrl = new URL(request.url);
-  const imgUrl = requestUrl.searchParams.get('url');
+// Confirmed via testing (checked the actual request VNDB's own site fires): this is
+// where VN cover images are served from. Kept as one constant, easy to update if VNDB
+// ever changes their CDN domain, rather than scattered through the function below.
+const VNDB_IMAGE_HOST = 'https://t.vndb.org';
 
-  if(!imgUrl){
-    return new Response('Missing url parameter', { status: 400 });
+async function handleImageProxy(url, env, ctx){
+  // Everything after "/img/" is treated as the image's own path (e.g. "cv/40/89140.jpg"),
+  // never a full URL, so the actual upstream domain never has to appear anywhere in a
+  // client-visible request, only inside this function, only on an actual cache miss.
+  const key = url.pathname.slice('/img/'.length);
+
+  if(!key){
+    return new Response('Missing image path', { status: 400 });
   }
-
-  let parsed;
-  try{
-    parsed = new URL(imgUrl);
-  }catch(err){
-    return new Response('Invalid url parameter', { status: 400 });
-  }
-
-  // Only ever proxies VNDB's own image CDN, never an arbitrary URL. Without this check
-  // the endpoint would be an open proxy anyone could point at any URL, using our
-  // bucket and bandwidth to cache and serve whatever they want.
-  if(parsed.hostname !== 'vndb.org' && !parsed.hostname.endsWith('.vndb.org')){
-    return new Response('URL not allowed', { status: 403 });
-  }
-
-  // VNDB's own URL path already uniquely identifies the image, so it doubles as a
-  // stable R2 object key, no need to hash or invent a separate ID scheme.
-  const key = parsed.pathname.replace(/^\/+/, '');
 
   const cached = await env.COVERS_BUCKET.get(key);
   if(cached){
@@ -54,7 +44,8 @@ async function handleImageProxy(request, env, ctx){
 
   // Cache miss: this is the one request per unique image that has to actually reach
   // VNDB, unavoidable since the cache starts out empty for every image.
-  const upstream = await fetch(imgUrl);
+  const upstreamUrl = VNDB_IMAGE_HOST + '/' + key;
+  const upstream = await fetch(upstreamUrl);
   if(!upstream.ok){
     return new Response('Upstream fetch failed', { status: upstream.status });
   }
