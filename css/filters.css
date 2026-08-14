@@ -39,23 +39,23 @@
   display:block;width:100%;text-align:left;background:none;border:none;
   color:var(--text);font-size:13px;padding:8px 10px;cursor:pointer;
 }
-.suggest button.active, .suggest button:hover{background:var(--panel);}
+.suggest button.active, .suggest button:hover{background:var(--panel);} /* .active is the keyboard-highlighted row, not just mouse hover */
 .suggest button small{color:var(--muted);margin-left:6px;}
-.suggest .empty{padding:9px 10px;font-size:12.5px;color:var(--muted);}
+.suggest .empty{padding:9px 10px;font-size:12.5px;color:var(--muted);} /* used for both "Searching tags..." and "No matching tag found" */
 
 .length-grid{display:flex;flex-wrap:wrap;gap:6px;}
 .len-toggle{
   font-size:11.5px;padding:6px 10px;border-radius:20px;
   background:var(--panel-2);border:1px solid var(--panel-edge);
-  color:var(--muted);cursor:pointer;
+  color:var(--muted);cursor:pointer; /* also reused for the AND/OR mode toggle buttons, not just length */
 }
 .len-toggle.active{background:rgba(226,178,86,.15);border-color:rgba(226,178,86,.4);color:var(--gold);}
 
-/* Shared by the sidebar's own checkboxes, plus the modal's "remember" checkbox and the
-   footer's reveal-preference checkbox, all of which reuse this same row layout. */
+/* Shared by the sidebar's own checkboxes, plus the modal's and footer's reveal related
+   checkboxes, all of which reuse this same row layout. */
 .check-row{display:flex;align-items:center;gap:8px;}
 .check-row label{margin:0;font-family:'Sora',sans-serif;font-size:13px;text-transform:none;letter-spacing:0;color:var(--text);}
-.check-row.subtle-check{margin-top:4px;margin-left:24px;opacity:.75;}
+.check-row.subtle-check{margin-top:4px;margin-left:24px;opacity:.75;} /* nests the partial English/MTL checkboxes under the one they depend on */
 .check-row.subtle-check label{font-size:12px;color:var(--muted);}
 
 .generate-btn{
