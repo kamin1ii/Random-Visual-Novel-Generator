@@ -14,12 +14,11 @@
   gtag('config', 'G-9X41XQLR9S');
 </script>
 
-<meta name="google-site-verification" content="WGGfgrNcxENd8_v1gND2kuAnwFBMmmNA1AYSCdg9KwE" />
 <meta name="description" content="A random visual novel generator and browser built on the VNDB API. Filter by score, tags, language, and length, generate a randomized list, and browse recommendations one at a time.">
-<link rel="canonical" href="https://kamin1ii.github.io/Random-Visual-Novel-Generator/">
+<link rel="canonical" href="https://randomvn.org/">
 <meta property="og:title" content="Random Visual Novel Generator">
 <meta property="og:description" content="A random visual novel generator and browser built on the VNDB API. Filter by score, tags, language, and length, generate a randomized list, and browse recommendations one at a time.">
-<meta property="og:url" content="https://kamin1ii.github.io/Random-Visual-Novel-Generator/">
+<meta property="og:url" content="https://randomvn.org/">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
@@ -39,6 +38,7 @@
 
 <div class="layout">
   <div class="sidebar">
+    <div class="sidebar-fields">
     <div class="field">
       <label for="minRating">Minimum score</label>
       <div class="slider-row">
@@ -130,9 +130,12 @@
       </select>
       <p class="subnote">200 to 300 titles may take a few seconds to build.</p>
     </div>
+    </div>
 
-    <button class="generate-btn" id="generateBtn" type="button">Generate list</button>
-    <button class="reset-link" id="resetBtn" type="button">Reset filters</button>
+    <div class="sidebar-actions">
+      <button class="generate-btn" id="generateBtn" type="button">Generate list</button>
+      <button class="reset-link" id="resetBtn" type="button">Reset filters</button>
+    </div>
   </div>
 
   <div class="main-col">
@@ -204,6 +207,6 @@
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=22"></script>
+<script type="module" src="js/main.js?v=24"></script>
 </body>
 </html>

@@ -3,7 +3,8 @@
    desktop layout's internal scroll regions (sidebar, dialogue). */
 @media (max-width:900px){
   .layout{grid-template-columns:1fr;}
-  .sidebar{position:static;}
+  .sidebar{position:static;max-height:none;}
+  .sidebar-fields{overflow-y:visible;}
   .card{flex-direction:column;height:auto;}
   .cover-wrap{width:100%;height:auto;aspect-ratio:3/4;}
   .content-col{padding:18px;}
