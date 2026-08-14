@@ -1,12 +1,11 @@
-import { els } from './dom.js?v=25';
-import { state } from './state.js?v=25';
-import { runQuery } from './api.js?v=25';
-import { buildFilters, describeFilters } from './filters.js?v=25';
-import { resetFilterUI } from './filterControls.js?v=25';
-import { makeTagPicker } from './tagPicker.js?v=25';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=25';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=25';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=25';
+import { els } from './dom.js?v=26';
+import { state } from './state.js?v=26';
+import { runQuery } from './api.js?v=26';
+import { buildFilters, describeFilters } from './filters.js?v=26';
+import { resetFilterUI } from './filterControls.js?v=26';
+import { makeTagPicker } from './tagPicker.js?v=26';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=26';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=26';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
@@ -61,17 +60,12 @@ async function generateList(){
 }
 
 // Runs on page load so there's something on screen before the person has touched any filter.
-// Fetches a small batch rather than a single result, specifically so a cover flagged as
-// explicit can be filtered out before choosing one, this is the one pick nobody asked
-// for, so it shouldn't be the one place the reveal-confirmation flow gets skipped.
 async function loadInitialPick(){
   try{
     const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"]];
-    const { results } = await runQuery(filters, 20);
-    const nonExplicit = results.filter(vn => !(vn.image && vn.image.sexual != null && vn.image.sexual >= SENSITIVE_THRESHOLD));
-    const pool = nonExplicit.length ? nonExplicit : results; // falls back to the full batch on the rare chance every pick in it happened to be flagged
-    if(pool.length){
-      state.list = [pool[0]]; // runQuery's results are already shuffled, so the first entry is as good as any random pick
+    const { results } = await runQuery(filters, 1);
+    if(results.length){
+      state.list = results;
       state.index = 0;
       state.isPlaceholder = true; // distinguishes this from a real generated list, disables nav/click-to-advance
       setStatus('A random pick to start. Set filters on the left and generate your own list.');
