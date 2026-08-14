@@ -1,6 +1,6 @@
-import { state } from './state.js?v=15';
-import { els } from './dom.js?v=15';
-import { LENGTH_LABELS } from './constants.js?v=15';
+import { state } from './state.js?v=16';
+import { els } from './dom.js?v=16';
+import { LENGTH_LABELS } from './constants.js?v=16';
 
 export function buildFilters(){
   const clauses = [["has_description","=",1]]; // otherwise the card could show a title with nothing to say about it
@@ -98,12 +98,17 @@ export function describeFilters(){
 
   if(state.includeTags.length){
     const mode = state.includeMode === 'or' ? 'match any' : 'match all';
-    parts.push('Includes (' + mode + '): ' + state.includeTags.map(t => t.name).join(', '));
+    // A short header chip, then one chip per tag, rather than joining every tag name
+    // into a single chip: with enough tags that one combined chip becomes wider than
+    // the page and (being nowrap) spills off the edge instead of wrapping.
+    parts.push('Includes (' + mode + '):');
+    state.includeTags.forEach(t => parts.push(t.name));
   }
 
   if(state.excludeTags.length){
     const mode = state.excludeMode === 'and' ? 'only if all match' : 'if any match';
-    parts.push('Excludes (' + mode + '): ' + state.excludeTags.map(t => t.name).join(', '));
+    parts.push('Excludes (' + mode + '):');
+    state.excludeTags.forEach(t => parts.push(t.name));
   }
 
   parts.push(els.listSize.value + ' titles per list');
