@@ -21,10 +21,10 @@
 <meta property="og:description" content="A random visual novel generator and browser built on the VNDB API. Filter by score, tags, language, and length, generate a randomized list, and browse recommendations one at a time.">
 <meta property="og:url" content="https://kamin1ii.github.io/Random-Visual-Novel-Generator/">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="css/base.css?v=10">
-<link rel="stylesheet" href="css/layout.css?v=10">
-<link rel="stylesheet" href="css/components.css?v=10">
-<link rel="stylesheet" href="css/responsive.css?v=10">
+<link rel="stylesheet" href="css/base.css?v=15">
+<link rel="stylesheet" href="css/layout.css?v=15">
+<link rel="stylesheet" href="css/components.css?v=15">
+<link rel="stylesheet" href="css/responsive.css?v=15">
 </head>
 <body>
 
@@ -149,7 +149,7 @@
         </a>
         <div class="cover-fallback" id="coverFallback">no cover art on file</div>
         <div class="cover-loading" id="coverLoading" aria-hidden="true"><span class="spinner"></span></div>
-        <button class="reveal-btn" id="revealBtn" type="button"><span>sensitive image, click to reveal</span></button>
+        <button class="reveal-btn" id="revealBtn" type="button"><span>Explicit image, click to reveal</span></button>
       </div>
       <div class="content-col">
         <div class="nameplate">
@@ -168,10 +168,30 @@
 
     <div class="active-filters" id="activeFilters"></div>
 
+    <div class="check-row reveal-pref">
+      <input type="checkbox" id="revealPrefCheckbox">
+      <label for="revealPrefCheckbox">Ask before revealing explicit images</label>
+    </div>
+
     <p class="footer-credit">Data via <a href="https://vndb.org" target="_blank" rel="noopener">vndb.org</a>.</p>
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=10"></script>
+<div class="modal-backdrop" id="revealModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="revealModalTitle">
+    <p class="modal-title" id="revealModalTitle">Reveal this explicit image?</p>
+    <p class="modal-body">This cover is flagged as explicit content on VNDB.</p>
+    <div class="check-row modal-remember">
+      <input type="checkbox" id="revealRemember">
+      <label for="revealRemember">Don't ask again</label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-cancel" id="revealCancel">Cancel</button>
+      <button type="button" class="modal-btn modal-btn-confirm" id="revealConfirm">Reveal</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js?v=15"></script>
 </body>
 </html>

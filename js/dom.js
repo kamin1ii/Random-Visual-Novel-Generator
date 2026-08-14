@@ -40,5 +40,10 @@ export const els = {
   dialogue: document.getElementById('dialogue'),
   vndbLink: document.getElementById('vndbLink'),
   includeModeToggle: document.getElementById('includeModeToggle'),
-  excludeModeToggle: document.getElementById('excludeModeToggle')
+  excludeModeToggle: document.getElementById('excludeModeToggle'),
+  revealModal: document.getElementById('revealModal'),
+  revealRemember: document.getElementById('revealRemember'),
+  revealCancel: document.getElementById('revealCancel'),
+  revealConfirm: document.getElementById('revealConfirm'),
+  revealPrefCheckbox: document.getElementById('revealPrefCheckbox')
 };

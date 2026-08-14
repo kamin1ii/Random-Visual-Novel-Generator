@@ -1,9 +1,9 @@
-import { els } from './dom.js?v=10';
-import { state } from './state.js?v=10';
-import { runQuery } from './api.js?v=10';
-import { buildFilters, describeFilters } from './filters.js?v=10';
-import { makeTagPicker, renderChips } from './tagPicker.js?v=10';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=10';
+import { els } from './dom.js?v=15';
+import { state } from './state.js?v=15';
+import { runQuery } from './api.js?v=15';
+import { buildFilters, describeFilters } from './filters.js?v=15';
+import { makeTagPicker, renderChips } from './tagPicker.js?v=15';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=15';
 
 els.minRating.addEventListener('input', () => {
   const v = parseFloat(els.minRating.value);
@@ -131,6 +131,12 @@ els.card.addEventListener('click', (e) => {
 // Listens on "document" rather than the card itself, so arrow keys work without first
 // clicking the card to focus it.
 document.addEventListener('keydown', (e) => {
+  // While the reveal-confirmation modal is open, arrow keys shouldn't advance the card
+  // behind it, and Escape should close the modal rather than doing nothing.
+  if(els.revealModal.classList.contains('open')){
+    if(e.key === 'Escape') closeRevealModal();
+    return;
+  }
   if(state.isPlaceholder) return;
   // skips VN navigation while typing anywhere, so this doesn't fight with the tag
   // search's own arrow key handling or move the cursor in a number field
@@ -145,15 +151,82 @@ document.addEventListener('keydown', (e) => {
 els.coverLink.addEventListener('click', (e) => { e.stopPropagation(); });
 els.vndbLink.addEventListener('click', (e) => { e.stopPropagation(); });
 
-els.revealBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); // otherwise this click would also advance to the next entry
+// "Remember" is stored in localStorage (not `state`) specifically so it survives a page
+// reload, it's a one-time device preference rather than something tied to the current
+// browsing session the way everything else in `state` is.
+const REMEMBER_REVEAL_KEY = 'vnpicker.rememberRevealExplicit';
+
+function revealIsRemembered(){
+  try{ return localStorage.getItem(REMEMBER_REVEAL_KEY) === 'true'; }
+  catch(err){ return false; } // private browsing / storage disabled, fall back to always asking
+}
+
+// Single place that changes the stored preference, so the modal's checkbox, the
+// persistent footer checkbox, and Reset Filters can never drift out of sync with
+// each other, whichever one of them the person actually used to change it.
+function setRememberReveal(remembered){
+  try{
+    if(remembered) localStorage.setItem(REMEMBER_REVEAL_KEY, 'true');
+    else localStorage.removeItem(REMEMBER_REVEAL_KEY);
+  }catch(err){} // best-effort, ignore if storage is blocked
+  // The footer checkbox reads "Ask before revealing", the positive/opposite framing of
+  // "remembered", so its checked state is always the inverse of the stored value.
+  els.revealPrefCheckbox.checked = !remembered;
+}
+
+function revealCover(){
   els.cover.classList.remove('sensitive');
   els.revealBtn.classList.remove('show');
+}
+
+function openRevealModal(){
+  els.revealRemember.checked = false;
+  els.revealModal.classList.add('open');
+}
+
+function closeRevealModal(){
+  els.revealModal.classList.remove('open');
+}
+
+els.revealBtn.addEventListener('click', (e) => {
+  e.stopPropagation(); // otherwise this click would also advance to the next entry
+  if(revealIsRemembered()){
+    revealCover();
+  } else {
+    openRevealModal();
+  }
+});
+
+els.revealCancel.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeRevealModal();
+});
+
+els.revealConfirm.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if(els.revealRemember.checked) setRememberReveal(true);
+  revealCover();
+  closeRevealModal();
+});
+
+// Clicking the dimmed backdrop (not the dialog box itself) closes the modal the same
+// way Cancel does, e.target === els.revealModal only matches the backdrop, not children.
+els.revealModal.addEventListener('click', (e) => {
+  if(e.target === els.revealModal) closeRevealModal();
+});
+
+// The persistent footer checkbox mirrors the same preference (inverted, since it reads
+// "Ask before revealing" rather than "remember my choice"), so it can be turned back on
+// directly without needing to hunt for the reveal modal or use Reset Filters.
+els.revealPrefCheckbox.checked = !revealIsRemembered();
+els.revealPrefCheckbox.addEventListener('change', () => {
+  setRememberReveal(!els.revealPrefCheckbox.checked);
 });
 
 els.nextBtn.addEventListener('click', goNext);
 els.prevBtn.addEventListener('click', goPrev);
 els.generateBtn.addEventListener('click', generateList);
+
 
 els.resetBtn.addEventListener('click', () => {
   els.minRating.value = 0;
@@ -178,6 +251,7 @@ els.resetBtn.addEventListener('click', () => {
   els.includeModeToggle.querySelectorAll('.len-toggle').forEach((b,i) => b.classList.toggle('active', i===0));
   els.excludeModeToggle.querySelectorAll('.len-toggle').forEach((b,i) => b.classList.toggle('active', i===0));
   els.activeFilters.innerHTML = '';
+  setRememberReveal(false); // back to asking before each explicit reveal
   setStatus('Filters reset. Generate a list to begin.');
 });
 
