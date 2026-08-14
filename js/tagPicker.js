@@ -1,4 +1,4 @@
-import { vndbQuery } from './api.js?v=28';
+import { vndbQuery } from './api.js?v=29';
 
 export function renderChips(listArr, chipsEl, chipClass){
   chipsEl.innerHTML = '';
@@ -165,9 +165,10 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     if(!suggestEl.contains(e.target) && e.target !== inputEl) hide();
   });
 
-  // The dropdown's fixed position is only correct at the moment it was set, if the
-  // sidebar scrolls while it's open it would otherwise stay frozen in place instead of
-  // following the input, closing it here avoids that visibly broken disconnect.
-  const scrollParent = inputEl.closest('.sidebar-fields');
-  if(scrollParent) scrollParent.addEventListener('scroll', hide);
+  // The dropdown's fixed position is only correct at the moment it was set. Listening
+  // on window with capture:true catches scrolling anywhere, the whole page scrolling
+  // *and* the sidebar's own internal scroll, since scroll events don't bubble up to
+  // window on their own, capture is what lets a single listener here catch both rather
+  // than needing a separate one for every scrollable ancestor.
+  window.addEventListener('scroll', hide, true);
 }
