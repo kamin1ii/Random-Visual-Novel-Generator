@@ -1,0 +1,36 @@
+.modal-backdrop{
+  display:none;
+  position:fixed;inset:0;
+  background:rgba(6,8,14,.72);
+  align-items:center;justify-content:center;
+  z-index:100;
+  padding:20px;
+}
+.modal-backdrop.open{display:flex;}
+.modal{
+  width:100%;max-width:360px;
+  background:var(--panel);
+  border:1px solid var(--panel-edge);
+  border-radius:14px;
+  padding:22px;
+  box-shadow:0 40px 80px -30px rgba(0,0,0,.7);
+}
+.modal-title{
+  font-family:'Sora',sans-serif;font-weight:600;
+  font-size:17px;color:var(--gold);margin:0 0 8px;
+}
+.modal-body{font-family:'Sora',sans-serif;font-size:13px;color:var(--muted);margin:0 0 16px;line-height:1.5;}
+.modal-remember{margin-bottom:18px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+.modal-btn{
+  font-family:'Sora',sans-serif;font-size:13px;
+  padding:9px 16px;border-radius:8px;cursor:pointer;
+}
+.modal-btn-cancel{
+  background:var(--panel-2);border:1px solid var(--panel-edge);color:var(--text);
+}
+.modal-btn-cancel:hover{border-color:var(--gold-dim);}
+.modal-btn-confirm{
+  background:var(--gold);border:none;color:var(--bg-0);font-weight:600;
+}
+.modal-btn-confirm:hover{background:#eec06b;}

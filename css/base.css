@@ -47,3 +47,59 @@ body{
 .masthead p{font-size:13px;color:var(--muted);margin:0;}
 
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+
+/* Generic native form-control resets. Element-selector based rather than a component's
+   own class, and used across more than one area (sidebar filters, the reveal modal, the
+   footer checkbox), so these live here rather than in any single component's file. */
+input[type=range]{flex:1;accent-color:var(--gold);height:4px;}
+
+select, input[type=number], input[type=text]{
+  width:100%;
+  background:var(--panel-2);
+  border:1px solid var(--panel-edge);
+  color:var(--text);
+  font-family:'Sora',sans-serif;
+  font-size:13px;
+  padding:8px 10px;
+  border-radius:8px;
+}
+select:focus, input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+
+/* Remove the browser's native number input spin buttons. They render with their own
+   OS styled box (often a white hover state, like in Chrome and Edge) that ignores
+   the page's theme entirely. Typing a value directly still works fine without them. */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
+input[type=number]{
+  -moz-appearance:textfield;
+}
+
+/* Fully custom checkbox so it matches the dark theme in both the checked and
+   unchecked state, instead of the browser's native (often white) checkbox box. */
+input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;
+  width:16px;height:16px;flex-shrink:0;margin:0;
+  background:var(--panel-2);
+  border:1px solid var(--panel-edge);
+  border-radius:4px;
+  cursor:pointer;
+  position:relative;
+}
+input[type=checkbox]:checked{
+  background:var(--gold);
+  border-color:var(--gold);
+}
+input[type=checkbox]:checked::after{
+  content:'';
+  position:absolute;
+  left:4px;top:1px;
+  width:4px;height:8px;
+  border:solid var(--bg-0);
+  border-width:0 2px 2px 0;
+  transform:rotate(45deg);
+}
+input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+input[type=checkbox]:disabled{opacity:.4;cursor:default;}
