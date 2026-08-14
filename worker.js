@@ -15,6 +15,7 @@ export default {
     // Worker does, with no dependency on Cloudflare's rule execution order.
     if(url.hostname === 'www.randomvn.org'){
       url.hostname = 'randomvn.org';
+      url.protocol = 'https:'; // forces https regardless of how the request arrived, doesn't just carry over whatever scheme it came in on
       return Response.redirect(url.toString(), 301);
     }
 
