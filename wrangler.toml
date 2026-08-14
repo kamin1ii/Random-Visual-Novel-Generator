@@ -1,0 +1,15 @@
+name = "random-visual-novel-generator"
+main = "worker.js"
+compatibility_date = "2026-08-14"
+
+# Serves the static site (index.html, css/, js/) from the repo root, the same files
+# GitHub Pages serves. Files listed in .assetsignore (worker.js, this config, etc.)
+# are excluded from being served as public assets.
+[assets]
+directory = "./"
+binding = "ASSETS"
+
+# The image cache bucket created in the R2 dashboard.
+[[r2_buckets]]
+binding = "COVERS_BUCKET"
+bucket_name = "rvng-covers"
