@@ -1,14 +1,32 @@
-import { els } from './dom.js?v=17';
-import { state } from './state.js?v=17';
-import { runQuery } from './api.js?v=17';
-import { buildFilters, describeFilters } from './filters.js?v=17';
-import { resetFilterUI } from './filterControls.js?v=17';
-import { makeTagPicker } from './tagPicker.js?v=17';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=17';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=17';
+import { els } from './dom.js?v=19';
+import { state } from './state.js?v=19';
+import { runQuery } from './api.js?v=19';
+import { buildFilters, describeFilters } from './filters.js?v=19';
+import { resetFilterUI } from './filterControls.js?v=19';
+import { makeTagPicker } from './tagPicker.js?v=19';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=19';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=19';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
+
+// A small enough popup (toggle a class on OK/backdrop click/Escape) that it doesn't
+// warrant its own file the way revealModal.js does, that one manages a persisted
+// preference synced across two separate controls, this is just an alert-style dialog.
+function showNoResultsModal(message){
+  els.noResultsBody.textContent = message;
+  els.noResultsModal.classList.add('open');
+}
+function closeNoResultsModal(){
+  els.noResultsModal.classList.remove('open');
+}
+function isNoResultsModalOpen(){
+  return els.noResultsModal.classList.contains('open');
+}
+els.noResultsOk.addEventListener('click', closeNoResultsModal);
+els.noResultsModal.addEventListener('click', (e) => {
+  if(e.target === els.noResultsModal) closeNoResultsModal();
+});
 
 async function generateList(){
   els.generateBtn.disabled = true; // prevents overlapping requests if clicked again mid-fetch
@@ -19,6 +37,7 @@ async function generateList(){
     const { count, results } = await runQuery(filters, listSize);
     if(!count){
       setStatus('No titles match those filters. Try loosening them.');
+      showNoResultsModal('No titles match those filters. Try loosening them.');
       return;
     }
     if(!results.length){
@@ -82,8 +101,12 @@ els.card.addEventListener('click', (e) => {
 // Listens on "document" rather than the card itself, so arrow keys work without first
 // clicking the card to focus it.
 document.addEventListener('keydown', (e) => {
-  // While the reveal-confirmation modal is open, arrow keys shouldn't advance the card
-  // behind it, and Escape should close the modal rather than doing nothing.
+  // While either modal is open, arrow keys shouldn't advance the card behind it, and
+  // Escape should close whichever one is actually open rather than doing nothing.
+  if(isNoResultsModalOpen()){
+    if(e.key === 'Escape') closeNoResultsModal();
+    return;
+  }
   if(isRevealModalOpen()){
     if(e.key === 'Escape') closeRevealModal();
     return;
