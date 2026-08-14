@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://kamin1ii.github.io/Random-Visual-Novel-Generator/sitemap.xml
+Sitemap: https://randomvn.org/sitemap.xml
