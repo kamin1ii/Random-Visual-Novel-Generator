@@ -1,4 +1,4 @@
-import { vndbQuery } from './api.js?v=29';
+import { vndbQuery } from './api.js?v=30';
 
 export function renderChips(listArr, chipsEl, chipClass){
   chipsEl.innerHTML = '';
@@ -169,6 +169,11 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
   // on window with capture:true catches scrolling anywhere, the whole page scrolling
   // *and* the sidebar's own internal scroll, since scroll events don't bubble up to
   // window on their own, capture is what lets a single listener here catch both rather
-  // than needing a separate one for every scrollable ancestor.
-  window.addEventListener('scroll', hide, true);
+  // than needing a separate one for every scrollable ancestor. Excludes the dropdown's
+  // own internal scroll (it has its own overflow-y:auto for long results lists), since
+  // scrolling through the results themselves shouldn't close the results.
+  window.addEventListener('scroll', (e) => {
+    if(suggestEl.contains(e.target)) return;
+    hide();
+  }, true);
 }
