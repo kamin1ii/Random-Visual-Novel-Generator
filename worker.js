@@ -1,12 +1,21 @@
-// Cloudflare Pages Function, routed automatically at /img (file-based routing: this
-// file's path under functions/ becomes its URL path). Proxies and caches VN cover
-// images in R2, so the first person to ever view a given cover triggers one request to
-// VNDB, and every request after that (from any visitor, not just the same device) is
-// served straight from our own bucket. The R2 bucket must be bound to this Pages
-// project as COVERS_BUCKET (Pages project settings -> Functions -> R2 bucket bindings).
+// Single entry point for the whole Worker. Cloudflare's Workers-with-static-assets
+// model doesn't have Pages' automatic /functions folder routing, so this script has to
+// check the path itself: /img goes to the caching proxy below, everything else falls
+// through to env.ASSETS, which serves the static site (same files GitHub Pages serves).
 
-export async function onRequestGet(context){
-  const { request, env } = context;
+export default {
+  async fetch(request, env, ctx){
+    const url = new URL(request.url);
+
+    if(url.pathname === '/img'){
+      return handleImageProxy(request, env, ctx);
+    }
+
+    return env.ASSETS.fetch(request);
+  },
+};
+
+async function handleImageProxy(request, env, ctx){
   const requestUrl = new URL(request.url);
   const imgUrl = requestUrl.searchParams.get('url');
 
@@ -43,7 +52,7 @@ export async function onRequestGet(context){
   }
 
   // Cache miss: this is the one request per unique image that has to actually reach
-  // VNDB, see the earlier conversation about why that first fetch is unavoidable.
+  // VNDB, unavoidable since the cache starts out empty for every image.
   const upstream = await fetch(imgUrl);
   if(!upstream.ok){
     return new Response('Upstream fetch failed', { status: upstream.status });
@@ -55,7 +64,7 @@ export async function onRequestGet(context){
   // waitUntil lets the response return immediately without waiting for the R2 write to
   // finish, the person gets their image right away, the cache just isn't warm for the
   // *next* request until this completes (normally well under a second later).
-  context.waitUntil(
+  ctx.waitUntil(
     env.COVERS_BUCKET.put(key, buffer, {
       httpMetadata: { contentType },
     })
