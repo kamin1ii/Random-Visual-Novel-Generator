@@ -1,4 +1,4 @@
-import { vndbQuery } from './api.js?v=27';
+import { vndbQuery } from './api.js?v=28';
 
 export function renderChips(listArr, chipsEl, chipClass){
   chipsEl.innerHTML = '';
@@ -26,11 +26,30 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
   let results = [];
   let activeIndex = -1; // -1 means nothing highlighted for keyboard nav
 
-  function close(){
+  // .suggest is position:fixed so it isn't clipped by the sidebar's own scroll boundary,
+  // which means its position has to be set here in JS (tracking the input's current
+  // on-screen location) rather than via static CSS relative to a positioned ancestor.
+  function positionSuggest(){
+    const rect = inputEl.getBoundingClientRect();
+    suggestEl.style.left = rect.left + 'px';
+    suggestEl.style.top = (rect.bottom + 4) + 'px';
+    suggestEl.style.width = rect.width + 'px';
+  }
+
+  // Visually closes without clearing the cached results, so refocusing the input
+  // afterward (without retyping) can instantly reopen with what was already found,
+  // rather than showing nothing until a new keystroke.
+  function hide(){
     suggestEl.classList.remove('open');
     suggestEl.innerHTML = '';
-    results = [];
     activeIndex = -1;
+  }
+
+  // A full reset, used when the search context itself changes (the query goes empty,
+  // or a tag gets picked), where the old results genuinely don't apply anymore.
+  function close(){
+    hide();
+    results = [];
   }
 
   function highlight(){
@@ -59,6 +78,7 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
       div.className = 'empty';
       div.textContent = 'No matching tag found';
       suggestEl.appendChild(div);
+      positionSuggest();
       suggestEl.classList.add('open');
       return;
     }
@@ -74,6 +94,7 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
       suggestEl.appendChild(btn);
     });
     results = filtered; // keep in sync with what's actually rendered, for keyboard nav indices
+    positionSuggest();
     suggestEl.classList.add('open');
     highlight();
   }
@@ -86,6 +107,7 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     div.className = 'empty';
     div.textContent = 'Searching tags...';
     suggestEl.appendChild(div);
+    positionSuggest();
     suggestEl.classList.add('open');
   }
 
@@ -112,6 +134,15 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     }, 300);
   });
 
+  // Reopens the dropdown when refocusing an input that already has text and cached
+  // results from before, e.g. clicking away then clicking back in without retyping,
+  // rather than leaving it closed with no way back in short of deleting a character.
+  inputEl.addEventListener('focus', () => {
+    if(inputEl.value.trim().length >= 1 && results.length){
+      render();
+    }
+  });
+
   inputEl.addEventListener('keydown', (e) => {
     if(!suggestEl.classList.contains('open')) return;
     if(e.key === 'ArrowDown'){
@@ -124,13 +155,19 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
       e.preventDefault();
       if(results.length){ pick(results[activeIndex >= 0 ? activeIndex : 0]); }
     } else if(e.key === 'Escape'){
-      close();
+      hide();
     }
   });
 
   // On the document rather than the input, since a click anywhere else on the page
   // (not just outside this specific field) should close the dropdown.
   document.addEventListener('click', (e) => {
-    if(!suggestEl.contains(e.target) && e.target !== inputEl) close();
+    if(!suggestEl.contains(e.target) && e.target !== inputEl) hide();
   });
+
+  // The dropdown's fixed position is only correct at the moment it was set, if the
+  // sidebar scrolls while it's open it would otherwise stay frozen in place instead of
+  // following the input, closing it here avoids that visibly broken disconnect.
+  const scrollParent = inputEl.closest('.sidebar-fields');
+  if(scrollParent) scrollParent.addEventListener('scroll', hide);
 }
