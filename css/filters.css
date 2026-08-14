@@ -59,7 +59,7 @@
 .check-row.subtle-check label{font-size:12px;color:var(--muted);}
 
 .generate-btn{
-  width:100%;margin-top:10px;
+  width:100%;
   font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.04em;
   color:var(--bg-0);background:var(--gold);border:none;border-radius:10px;
   padding:11px;cursor:pointer;transition:background .15s ease, transform .15s ease;
