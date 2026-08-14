@@ -1,6 +1,6 @@
-import { els } from './dom.js?v=26';
-import { state } from './state.js?v=26';
-import { renderChips } from './tagPicker.js?v=26';
+import { els } from './dom.js?v=27';
+import { state } from './state.js?v=27';
+import { renderChips } from './tagPicker.js?v=27';
 
 // Wires the sidebar's own interactive behavior: live slider label, length/mode toggle
 // buttons, and the English-release sub-checkboxes. This is distinct from filters.js,
