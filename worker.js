@@ -1,21 +1,17 @@
-// Single entry point for the whole Worker. Cloudflare's Workers-with-static-assets
-// model doesn't have Pages' automatic /functions folder routing, so this script has to
-// check the path itself: anything under /img/ goes to the caching proxy below,
-// everything else falls through to env.ASSETS, which serves the static site (same
-// files GitHub Pages serves).
+// Single entry point for the whole Worker. Workers with static assets doesn't have
+// Pages' automatic /functions routing, so this checks the path itself. /img/ goes to
+// the caching proxy below, everything else falls through to env.ASSETS (the static site).
 
 export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
 
-    // Redirecting www -> apex here, in code, rather than via a Cloudflare Redirect
-    // Rule: Redirect Rules can silently fail to fire when their target is itself a
-    // Workers Custom Domain (a known conflict between the two features), so this is
-    // handled directly instead, guaranteed to run since it's the first thing the
-    // Worker does, with no dependency on Cloudflare's rule execution order.
+    // Done in code rather than a Cloudflare Redirect Rule. Redirect Rules can silently
+    // fail to fire when their target is itself a Workers Custom Domain, this way is
+    // guaranteed to run since it's the first thing the Worker does.
     if(url.hostname === 'www.randomvn.org'){
       url.hostname = 'randomvn.org';
-      url.protocol = 'https:'; // forces https regardless of how the request arrived, doesn't just carry over whatever scheme it came in on
+      url.protocol = 'https:';
       return Response.redirect(url.toString(), 301);
     }
 
@@ -27,15 +23,10 @@ export default {
   },
 };
 
-// Confirmed via testing (checked the actual request VNDB's own site fires): this is
-// where VN cover images are served from. Kept as one constant, easy to update if VNDB
-// ever changes their CDN domain, rather than scattered through the function below.
-const VNDB_IMAGE_HOST = 'https://t.vndb.org';
+const VNDB_IMAGE_HOST = 'https://t.vndb.org'; // confirmed via testing, not documented anywhere official
 
 async function handleImageProxy(url, env, ctx){
-  // Everything after "/img/" is treated as the image's own path (e.g. "cv/40/89140.jpg"),
-  // never a full URL, so the actual upstream domain never has to appear anywhere in a
-  // client-visible request, only inside this function, only on an actual cache miss.
+  // path only, never a full URL, so the upstream domain never appears in a client visible request
   const key = url.pathname.slice('/img/'.length);
 
   if(!key){
@@ -48,13 +39,12 @@ async function handleImageProxy(url, env, ctx){
       headers: {
         'Content-Type': cached.httpMetadata?.contentType || 'image/jpeg',
         'Cache-Control': 'public, max-age=31536000, immutable',
-        'X-Cache': 'HIT', // served from R2, VNDB was never contacted for this request
+        'X-Cache': 'HIT',
       },
     });
   }
 
-  // Cache miss: this is the one request per unique image that has to actually reach
-  // VNDB, unavoidable since the cache starts out empty for every image.
+  // the one request per unique image that has to actually reach VNDB
   const upstreamUrl = VNDB_IMAGE_HOST + '/' + key;
   const upstream = await fetch(upstreamUrl);
   if(!upstream.ok){
@@ -64,9 +54,7 @@ async function handleImageProxy(url, env, ctx){
   const contentType = upstream.headers.get('Content-Type') || 'image/jpeg';
   const buffer = await upstream.arrayBuffer();
 
-  // waitUntil lets the response return immediately without waiting for the R2 write to
-  // finish, the person gets their image right away, the cache just isn't warm for the
-  // *next* request until this completes (normally well under a second later).
+  // returns immediately, doesn't wait on the R2 write, cache just isn't warm for the next request yet
   ctx.waitUntil(
     env.COVERS_BUCKET.put(key, buffer, {
       httpMetadata: { contentType },
@@ -77,7 +65,7 @@ async function handleImageProxy(url, env, ctx){
     headers: {
       'Content-Type': contentType,
       'Cache-Control': 'public, max-age=31536000, immutable',
-      'X-Cache': 'MISS', // this request actually went out to VNDB
+      'X-Cache': 'MISS',
     },
   });
 }

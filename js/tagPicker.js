@@ -1,4 +1,4 @@
-import { vndbQuery } from './api.js?v=32';
+import { vndbQuery } from './api.js?v=33';
 
 export function renderChips(listArr, chipsEl, chipClass){
   chipsEl.innerHTML = '';
@@ -19,16 +19,14 @@ export function renderChips(listArr, chipsEl, chipClass){
   });
 }
 
-// Shared by both the include and exclude inputs, since the search/suggest/pick behavior
-// is identical for both, only the target array and styling differ.
+// shared by both include/exclude inputs, same behavior, only the target array differs
 export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, chipClass){
   let timer = null;
   let results = [];
-  let activeIndex = -1; // -1 means nothing highlighted for keyboard nav
+  let activeIndex = -1;
 
-  // .suggest is position:fixed so it isn't clipped by the sidebar's own scroll boundary,
-  // which means its position has to be set here in JS (tracking the input's current
-  // on-screen location) rather than via static CSS relative to a positioned ancestor.
+  // .suggest is position:fixed to escape the sidebar's own scroll clipping, so its
+  // position has to be tracked here in JS instead of via static CSS.
   function positionSuggest(){
     const rect = inputEl.getBoundingClientRect();
     suggestEl.style.left = rect.left + 'px';
@@ -36,18 +34,15 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     suggestEl.style.width = rect.width + 'px';
   }
 
-  // Visually closes without clearing the cached results, so refocusing the input
-  // afterward (without retyping) can instantly reopen with what was already found,
-  // rather than showing nothing until a new keystroke.
+  // closes visually but keeps `results` cached, so refocusing without retyping can
+  // instantly reopen instead of showing nothing until a new keystroke
   function hide(){
     suggestEl.classList.remove('open');
     suggestEl.innerHTML = '';
     activeIndex = -1;
   }
 
-  // A full reset, used when the search context itself changes (the query goes empty,
-  // or a tag gets picked), where the old results genuinely don't apply anymore.
-  function close(){
+  function close(){ // full reset, used once the search context itself changes
     hide();
     results = [];
   }
@@ -59,19 +54,19 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
   }
 
   function pick(tag){
-    if(!listArr.some(t => t.id === tag.id)){ // avoid duplicate chips
+    if(!listArr.some(t => t.id === tag.id)){
       listArr.push({ id: tag.id, name: tag.name });
       renderChips(listArr, chipsEl, chipClass);
     }
     inputEl.value = '';
     statusEl.textContent = '';
     close();
-    inputEl.focus(); // keeps the cursor ready to search for the next tag right away
+    inputEl.focus();
   }
 
   function render(){
     suggestEl.innerHTML = '';
-    const existing = new Set(listArr.map(t => t.id)); // don't suggest tags already picked
+    const existing = new Set(listArr.map(t => t.id));
     const filtered = results.filter(r => !existing.has(r.id));
     if(!filtered.length){
       const div = document.createElement('div');
@@ -93,14 +88,12 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
       btn.addEventListener('click', () => pick(tag));
       suggestEl.appendChild(btn);
     });
-    results = filtered; // keep in sync with what's actually rendered, for keyboard nav indices
+    results = filtered;
     positionSuggest();
     suggestEl.classList.add('open');
     highlight();
   }
 
-  // Shown the instant typing starts, before the network request resolves, so it's clear
-  // right away that this field expects a pick from a list rather than free typed text.
   function showLoading(){
     suggestEl.innerHTML = '';
     const div = document.createElement('div');
@@ -120,7 +113,6 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     showLoading();
     statusEl.textContent = '…';
     statusEl.className = 'tag-status spin';
-    // debounced so a fast typer doesn't fire a request on every keystroke
     timer = setTimeout(async () => {
       try{
         const data = await vndbQuery('tag', { filters:["search","=",q], fields:"id,name,category", results:10 });
@@ -131,12 +123,10 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
         statusEl.textContent = '!';
         close();
       }
-    }, 300);
+    }, 300); // debounced, no request on every keystroke
   });
 
-  // Reopens the dropdown when refocusing an input that already has text and cached
-  // results from before, e.g. clicking away then clicking back in without retyping,
-  // rather than leaving it closed with no way back in short of deleting a character.
+  // reopens on refocus if there's still text and cached results, e.g. click away then back
   inputEl.addEventListener('focus', () => {
     if(inputEl.value.trim().length >= 1 && results.length){
       render();
@@ -159,27 +149,18 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     }
   });
 
-  // On the document rather than the input, since a click anywhere else on the page
-  // (not just outside this specific field) should close the dropdown.
   document.addEventListener('click', (e) => {
     if(!suggestEl.contains(e.target) && e.target !== inputEl) hide();
   });
 
-  // The dropdown's fixed position is only correct at the moment it was set, so it needs
-  // continuous updates while scrolling, not just a one-time position. Listening on
-  // window with capture:true catches scrolling anywhere, the whole page scrolling *and*
-  // the sidebar's own internal scroll, since scroll events don't bubble up to window on
-  // their own, capture is what lets a single listener here catch both rather than
-  // needing a separate one for every scrollable ancestor. Excludes the dropdown's own
-  // internal scroll (it has its own overflow-y:auto for long results lists), since
-  // scrolling through the results themselves doesn't move the input it's anchored to.
+  // Repositions on scroll instead of closing, so the dropdown stays anchored to the
+  // input. capture:true catches both page scroll and the sidebar's internal scroll,
+  // since scroll doesn't bubble to window normally. Excludes the dropdown's own
+  // results list scroll. rAF throttled since scroll can fire faster than repaints.
   let scrollRaf = null;
   window.addEventListener('scroll', (e) => {
     if(suggestEl.contains(e.target)) return;
     if(!suggestEl.classList.contains('open')) return;
-    // A fast scroll can fire this far more often than the screen actually redraws,
-    // requestAnimationFrame caps the real work to once per frame regardless of how many
-    // scroll events land in that window, rather than repositioning redundantly on each one.
     if(scrollRaf) return;
     scrollRaf = requestAnimationFrame(() => {
       positionSuggest();
