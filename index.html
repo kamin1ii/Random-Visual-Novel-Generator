@@ -207,6 +207,16 @@
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=39"></script>
+<div class="modal-backdrop" id="rateLimitModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rateLimitTitle">
+    <p class="modal-title" id="rateLimitTitle">Too many requests</p>
+    <p class="modal-body">You're generating lists too quickly and have hit VNDB's rate limit. Please slow down and wait a minute or two before trying again.</p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-confirm" id="rateLimitOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js?v=40"></script>
 </body>
 </html>
