@@ -1,4 +1,4 @@
-import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=42';
+import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=43';
 
 export async function vndbQuery(endpoint, body){
   const res = await fetch(API + '/' + endpoint, {

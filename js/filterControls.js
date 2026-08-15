@@ -1,6 +1,6 @@
-import { els } from './dom.js?v=42';
-import { state } from './state.js?v=42';
-import { renderChips } from './tagPicker.js?v=42';
+import { els } from './dom.js?v=43';
+import { state } from './state.js?v=43';
+import { renderChips } from './tagPicker.js?v=43';
 
 // Sidebar's own interactive behavior (slider label, toggle buttons, sub-checkboxes),
 // separate from filters.js which reads these same controls to build a query.
@@ -68,7 +68,7 @@ export function resetFilterUI(){
   state.lengths.clear();
   els.lengthGrid.querySelectorAll('.len-toggle').forEach(b => b.classList.remove('active'));
   state.includeTags = [];
-  state.excludeTags = [];
+  state.excludeTags = [{ id: 214, name: 'Nukige' }];
   renderChips(state.includeTags, els.includeChips, 'include');
   renderChips(state.excludeTags, els.excludeChips, 'exclude');
   els.listSize.value = '50';
