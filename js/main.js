@@ -1,19 +1,18 @@
-import { els } from './dom.js?v=32';
-import { state } from './state.js?v=32';
-import { runQuery } from './api.js?v=32';
-import { buildFilters, describeFilters } from './filters.js?v=32';
-import { resetFilterUI } from './filterControls.js?v=32';
-import { makeTagPicker } from './tagPicker.js?v=32';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=32';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=32';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=32';
+import { els } from './dom.js?v=33';
+import { state } from './state.js?v=33';
+import { runQuery } from './api.js?v=33';
+import { buildFilters, describeFilters } from './filters.js?v=33';
+import { resetFilterUI } from './filterControls.js?v=33';
+import { makeTagPicker } from './tagPicker.js?v=33';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=33';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=33';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=33';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
 
-// A small enough popup (toggle a class on OK/backdrop click/Escape) that it doesn't
-// warrant its own file the way revealModal.js does, that one manages a persisted
-// preference synced across two separate controls, this is just an alert-style dialog.
+// too small to need its own file like revealModal.js, that one manages a persisted
+// preference across two controls, this is just an alert dialog
 function showNoResultsModal(message){
   els.noResultsBody.textContent = message;
   els.noResultsModal.classList.add('open');
@@ -30,7 +29,7 @@ els.noResultsModal.addEventListener('click', (e) => {
 });
 
 async function generateList(){
-  els.generateBtn.disabled = true; // prevents overlapping requests if clicked again mid-fetch
+  els.generateBtn.disabled = true;
   setStatus('Searching VNDB…');
   try{
     const filters = buildFilters();
@@ -60,20 +59,19 @@ async function generateList(){
   }
 }
 
-// Runs on page load so there's something on screen before the person has touched any filter.
-// Fetches a small batch rather than a single result, specifically so a cover flagged as
-// explicit can be filtered out before choosing one, this is the one pick nobody asked
-// for, so it shouldn't be the one place the reveal-confirmation flow gets skipped.
+// runs on page load, before anyone's touched a filter. Fetches a small batch instead of
+// one result so an explicit cover can be filtered out, nobody asked for this pick, so it
+// shouldn't be the one place the reveal-confirmation flow gets skipped.
 async function loadInitialPick(){
   try{
     const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"]];
     const { results } = await runQuery(filters, 20);
     const nonExplicit = results.filter(vn => !(vn.image && vn.image.sexual != null && vn.image.sexual >= SENSITIVE_THRESHOLD));
-    const pool = nonExplicit.length ? nonExplicit : results; // falls back to the full batch on the rare chance every pick in it happened to be flagged
+    const pool = nonExplicit.length ? nonExplicit : results; // fallback for the rare case every pick got flagged
     if(pool.length){
-      state.list = [pool[0]]; // runQuery's results are already shuffled, so the first entry is as good as any random pick
+      state.list = [pool[0]]; // already shuffled by runQuery
       state.index = 0;
-      state.isPlaceholder = true; // distinguishes this from a real generated list, disables nav/click-to-advance
+      state.isPlaceholder = true;
       setStatus('A random pick to start. Set filters on the left and generate your own list.');
       showCurrent();
     } else {
@@ -86,29 +84,24 @@ async function loadInitialPick(){
 
 function goNext(){
   if(!state.list.length) return;
-  state.index = (state.index + 1) % state.list.length; // wraps back to the start past the last entry
+  state.index = (state.index + 1) % state.list.length;
   showCurrent();
 }
 
 function goPrev(){
   if(!state.list.length) return;
-  state.index = (state.index - 1 + state.list.length) % state.list.length; // avoids a negative index at the start
+  state.index = (state.index - 1 + state.list.length) % state.list.length;
   showCurrent();
 }
 
-// closest() check here is a backup, coverLink/vndbLink/revealBtn each already stop
-// propagation themselves, this just guards against that ever being removed by accident.
 els.card.addEventListener('click', (e) => {
   if(e.target.closest('#coverLink') || e.target.closest('#vndbLink') || e.target.closest('#revealBtn') || e.target.closest('.tag-more')) return;
   if(state.isPlaceholder) return;
   goNext();
 });
 
-// Listens on "document" rather than the card itself, so arrow keys work without first
-// clicking the card to focus it.
+// on document, not the card, so arrow keys work without clicking the card first
 document.addEventListener('keydown', (e) => {
-  // While either modal is open, arrow keys shouldn't advance the card behind it, and
-  // Escape should close whichever one is actually open rather than doing nothing.
   if(isNoResultsModalOpen()){
     if(e.key === 'Escape') closeNoResultsModal();
     return;
@@ -118,16 +111,12 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if(state.isPlaceholder) return;
-  // skips VN navigation while typing anywhere, so this doesn't fight with the tag
-  // search's own arrow key handling or move the cursor in a number field
   const tag = document.activeElement.tagName;
-  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return; // don't hijack typing elsewhere
   if(e.key === 'ArrowRight'){ e.preventDefault(); goNext(); }
   if(e.key === 'ArrowLeft'){ e.preventDefault(); goPrev(); }
 });
 
-// Without stopPropagation, clicking the cover would also trigger the card's click
-// handler and advance to the next entry at the same moment the link opened.
 els.coverLink.addEventListener('click', (e) => { e.stopPropagation(); });
 els.vndbLink.addEventListener('click', (e) => { e.stopPropagation(); });
 
@@ -140,7 +129,7 @@ els.generateBtn.addEventListener('click', generateList);
 els.resetBtn.addEventListener('click', () => {
   resetFilterUI();
   els.activeFilters.innerHTML = '';
-  resetRevealPreference(); // back to asking before each explicit reveal
+  resetRevealPreference();
   setStatus('Filters reset. Generate a list to begin.');
 });
 

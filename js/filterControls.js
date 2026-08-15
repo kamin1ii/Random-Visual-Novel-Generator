@@ -1,19 +1,15 @@
-import { els } from './dom.js?v=32';
-import { state } from './state.js?v=32';
-import { renderChips } from './tagPicker.js?v=32';
+import { els } from './dom.js?v=33';
+import { state } from './state.js?v=33';
+import { renderChips } from './tagPicker.js?v=33';
 
-// Wires the sidebar's own interactive behavior: live slider label, length/mode toggle
-// buttons, and the English-release sub-checkboxes. This is distinct from filters.js,
-// which reads the CURRENT state of these same controls to build a VNDB query, this file
-// is only concerned with how the controls themselves behave when clicked or changed.
+// Sidebar's own interactive behavior (slider label, toggle buttons, sub-checkboxes),
+// separate from filters.js which reads these same controls to build a query.
 
 els.minRating.addEventListener('input', () => {
   const v = parseFloat(els.minRating.value);
-  els.minRatingVal.textContent = v === 0 ? 'Any' : v.toFixed(1); // 0 reads as "no minimum", not "0.0"
+  els.minRatingVal.textContent = v === 0 ? 'Any' : v.toFixed(1);
 });
 
-// Delegated to the container instead of one listener per button, so adding or removing
-// a length option later doesn't require re-wiring individual event listeners.
 els.lengthGrid.addEventListener('click', (e) => {
   const btn = e.target.closest('.len-toggle');
   if(!btn) return;
@@ -43,9 +39,7 @@ els.excludeModeToggle.addEventListener('click', (e) => {
   btn.classList.add('active');
 });
 
-// The partial-patch and MTL checkboxes only mean anything if "full English release" is
-// also checked, disabling them prevents a misleading "on but irrelevant" state, and
-// force-unchecking them when the parent turns off stops them silently staying "on" while hidden.
+// partial-patch/MTL only mean anything if "full English release" is also checked
 function syncEnglishSubOptions(){
   const enabled = els.englishOnly.checked;
   els.includePartialEnglish.disabled = !enabled;
@@ -58,10 +52,8 @@ function syncEnglishSubOptions(){
 els.englishOnly.addEventListener('change', syncEnglishSubOptions);
 syncEnglishSubOptions();
 
-// Resets every sidebar filter control back to its default value. Deliberately doesn't
-// touch the active-filters recap chips or the reveal preference, those belong to other
-// subsystems (render.js's chips, revealModal.js's own reset), main.js's Reset Filters
-// handler calls this alongside those, rather than this function reaching into either.
+// doesn't touch the active-filters chips or reveal preference, main.js's Reset Filters
+// handler calls this alongside those separately
 export function resetFilterUI(){
   els.minRating.value = 0;
   els.minRatingVal.textContent = 'Any';
