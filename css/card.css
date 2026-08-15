@@ -24,7 +24,7 @@
 .cover-wrap img.no-anim{transition:none !important;}
 .cover-fallback{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--muted);
+  font-family:'Sora',sans-serif;color:var(--muted);
   font-size:14px;text-align:center;padding:20px;
 }
 .cover-loading{
