@@ -1,12 +1,12 @@
-import { els } from './dom.js?v=33';
-import { state } from './state.js?v=33';
-import { runQuery } from './api.js?v=33';
-import { buildFilters, describeFilters } from './filters.js?v=33';
-import { resetFilterUI } from './filterControls.js?v=33';
-import { makeTagPicker } from './tagPicker.js?v=33';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=33';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=33';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=33';
+import { els } from './dom.js?v=34';
+import { state } from './state.js?v=34';
+import { runQuery } from './api.js?v=34';
+import { buildFilters, describeFilters } from './filters.js?v=34';
+import { resetFilterUI } from './filterControls.js?v=34';
+import { makeTagPicker } from './tagPicker.js?v=34';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=34';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=34';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=34';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');

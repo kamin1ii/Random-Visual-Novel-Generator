@@ -1,4 +1,31 @@
-import { vndbQuery } from './api.js?v=33';
+// Tag data loaded once from a local static dump (built from VNDB's own database dump,
+// https://vndb.org/d14) instead of querying VNDB's live /tag endpoint on every search.
+// Fetched once and shared across both the include and exclude pickers.
+let tagsPromise = null;
+function loadTags(){
+  if(!tagsPromise){
+    tagsPromise = fetch('tags.json?v=1').then(res => res.json());
+  }
+  return tagsPromise;
+}
+
+// exact match first, then prefix, then substring, then a match in an alias
+function searchTags(allTags, q, limit = 10){
+  const query = q.toLowerCase();
+  const scored = [];
+  for(const tag of allTags){
+    const nameLower = tag.name.toLowerCase();
+    let score;
+    if(nameLower === query) score = 0;
+    else if(nameLower.startsWith(query)) score = 1;
+    else if(nameLower.includes(query)) score = 2;
+    else if(tag.aliases.some(a => a.toLowerCase().includes(query))) score = 3;
+    else continue;
+    scored.push({ tag, score });
+  }
+  scored.sort((a, b) => a.score - b.score);
+  return scored.slice(0, limit).map(s => s.tag);
+}
 
 export function renderChips(listArr, chipsEl, chipClass){
   chipsEl.innerHTML = '';
@@ -21,7 +48,6 @@ export function renderChips(listArr, chipsEl, chipClass){
 
 // shared by both include/exclude inputs, same behavior, only the target array differs
 export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, chipClass){
-  let timer = null;
   let results = [];
   let activeIndex = -1;
 
@@ -94,36 +120,22 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     highlight();
   }
 
-  function showLoading(){
-    suggestEl.innerHTML = '';
-    const div = document.createElement('div');
-    div.className = 'empty';
-    div.textContent = 'Searching tags...';
-    suggestEl.appendChild(div);
-    positionSuggest();
-    suggestEl.classList.add('open');
-  }
-
   inputEl.addEventListener('input', () => {
-    clearTimeout(timer);
     const q = inputEl.value.trim();
     activeIndex = -1;
     if(q.length < 1){ close(); statusEl.textContent = ''; return; }
-    results = [];
-    showLoading();
     statusEl.textContent = '…';
     statusEl.className = 'tag-status spin';
-    timer = setTimeout(async () => {
-      try{
-        const data = await vndbQuery('tag', { filters:["search","=",q], fields:"id,name,category", results:10 });
-        results = data.results || [];
-        statusEl.textContent = results.length ? '' : '';
-        render();
-      }catch(err){
-        statusEl.textContent = '!';
-        close();
-      }
-    }, 300); // debounced, no request on every keystroke
+    // local search, near-instant once tags.json has loaded, no debounce needed
+    loadTags().then(allTags => {
+      if(inputEl.value.trim() !== q) return; // stale, a newer keystroke has since fired
+      results = searchTags(allTags, q);
+      statusEl.textContent = '';
+      render();
+    }).catch(() => {
+      statusEl.textContent = '!';
+      close();
+    });
   });
 
   // reopens on refocus if there's still text and cached results, e.g. click away then back
