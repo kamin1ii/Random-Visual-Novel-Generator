@@ -73,7 +73,6 @@
   overflow:hidden;
   border:1px solid var(--panel-edge);
   background:var(--panel);
-  box-shadow:0 40px 80px -30px rgba(0,0,0,.7);
   height:min(560px, calc(100vh - 250px)); /* fixed height on tall screens, shrinks on shorter ones so it never gets cut off */
   min-height:400px;
 }

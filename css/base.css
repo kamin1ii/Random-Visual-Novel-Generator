@@ -34,7 +34,7 @@ body{
 .masthead{
   text-align:center;margin-bottom:28px;
   padding-bottom:20px;
-  border-bottom:1px solid var(--panel-edge); /* a plain divider, kept deliberately simple instead of a gradient */
+  border-bottom:1px solid var(--panel-edge);
   width:100%;max-width:1320px; /* matches .layout's width so the divider spans the same line as the content below */
 }
 .masthead h1{
