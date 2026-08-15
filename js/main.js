@@ -1,15 +1,19 @@
-import { els } from './dom.js?v=42';
-import { state } from './state.js?v=42';
-import { runQuery, fetchRandomPool } from './api.js?v=42';
-import { buildFilters, describeFilters } from './filters.js?v=42';
-import { resetFilterUI } from './filterControls.js?v=42';
-import { makeTagPicker } from './tagPicker.js?v=42';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=42';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=42';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=42';
+import { els } from './dom.js?v=43';
+import { state } from './state.js?v=43';
+import { runQuery, fetchRandomPool } from './api.js?v=43';
+import { buildFilters, describeFilters } from './filters.js?v=43';
+import { resetFilterUI } from './filterControls.js?v=43';
+import { makeTagPicker, renderChips } from './tagPicker.js?v=43';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=43';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=43';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
+// renders the default Nukige chip on load, chip rendering otherwise only happens on
+// add/remove/reset, without this the exclude filter would be silently active with no
+// visible chip until the person reset filters once
+renderChips(state.includeTags, els.includeChips, 'include');
+renderChips(state.excludeTags, els.excludeChips, 'exclude');
 
 // too small to need its own file like revealModal.js, that one manages a persisted
 // preference across two controls, this is just an alert dialog
@@ -90,17 +94,15 @@ async function generateList(){
   }
 }
 
-// runs on page load, before anyone's touched a filter. Fetches a small batch instead of
-// one result so an explicit cover can be filtered out, nobody asked for this pick, so it
-// shouldn't be the one place the reveal-confirmation flow gets skipped.
+// runs on page load, before anyone's touched a filter
 async function loadInitialPick(){
   try{
-    const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"]];
-    const { results } = await fetchRandomPool(filters, 20);
-    const nonExplicit = results.filter(vn => !(vn.image && vn.image.sexual != null && vn.image.sexual >= SENSITIVE_THRESHOLD));
-    const pool = nonExplicit.length ? nonExplicit : results; // fallback for the rare case every pick got flagged
-    if(pool.length){
-      state.list = [pool[0]]; // already shuffled by fetchRandomPool
+    // tag 214 = Nukige, excluded server-side so this doesn't need a pool to filter
+    // locally, one candidate is enough since VNDB already guarantees it isn't nukige
+    const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"], ["tag","!=",[214,2,0]]];
+    const { results } = await fetchRandomPool(filters, 1);
+    if(results.length){
+      state.list = [results[0]];
       state.index = 0;
       state.isPlaceholder = true;
       setStatus('A random pick to start. Filters are on the left, use them to generate a list.');
