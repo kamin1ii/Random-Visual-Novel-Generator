@@ -1,13 +1,16 @@
-import { els } from './dom.js?v=43';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=43';
+import { els } from './dom.js?v=45';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=45';
 
 // Routes through our own /img/<path> proxy instead of VNDB directly. The proxy caches
 // each image in R2 on first request, so VNDB sees one request per unique cover total,
-// not one per visitor. Path only (no full URL) keeps the upstream domain out of anything
-// client-visible.
+// not one per visitor. Absolute URL with the canonical domain hardcoded explicitly,
+// rather than a relative path, closes off any chance of the browser resolving it
+// against www.randomvn.org and needing an extra redirect hop before landing on the
+// correct domain, regardless of what causes that resolution to happen.
+const SITE_ORIGIN = 'https://randomvn.org';
 function proxiedImageUrl(vndbUrl){
   const path = new URL(vndbUrl).pathname.replace(/^\/+/, '');
-  return '/img/' + path;
+  return SITE_ORIGIN + '/img/' + path;
 }
 
 // Preloaded Image() objects for covers the person hasn't reached yet, capped so a long
@@ -43,7 +46,9 @@ let preloadDebounceTimer = null;
 const PRELOAD_DEBOUNCE_MS = 200;
 
 export function preloadAround(list, index, radius = 5){
-  if(!list.length) return;
+  // A list of 1 (the startup pick) has no genuine neighbors, every offset would wrap
+  // back to the same single item, redundantly fetching the image already being shown again.
+  if(list.length <= 1) return;
   clearTimeout(preloadDebounceTimer);
   preloadDebounceTimer = setTimeout(() => {
     const schedule = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
