@@ -1,4 +1,4 @@
-import { vndbQuery } from './api.js?v=32';
+import { vndbQuery } from './api.js?v=33';
 
 export function renderChips(listArr, chipsEl, chipClass){
   chipsEl.innerHTML = '';

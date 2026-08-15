@@ -1,15 +1,13 @@
-import { els } from './dom.js?v=32';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=32';
+import { els } from './dom.js?v=33';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=33';
 
-// Routes cover images through our own /img/<path> proxy (a Cloudflare Worker) instead
-// of VNDB's CDN directly. The proxy caches each image in R2 on first request and serves
-// every request after that from our own storage, so VNDB only ever sees one request per
-// unique cover, across all visitors combined, not once per visitor per view. Using just
-// the image's path (not the full VNDB URL) as the visible request keeps the actual
-// upstream domain out of anything client-visible, the worker reconstructs it internally.
+// TEMPORARY TEST (revert this): bypassing our own proxy and R2 cache entirely, pointing
+// straight at VNDB's unofficial cv.t/ thumbnail path just to preview it visually. Not
+// going through /img/ on purpose, so this doesn't touch or interact with the existing
+// cv/-keyed R2 cache at all. cv.t/ isn't officially documented by VNDB, so this may 404.
 function proxiedImageUrl(vndbUrl){
-  const path = new URL(vndbUrl).pathname.replace(/^\/+/, '');
-  return '/img/' + path;
+  const path = new URL(vndbUrl).pathname.replace('/cv/', '/cv.t/');
+  return 'https://t.vndb.org' + path;
 }
 
 // Caches Image() objects for covers the person hasn't reached yet, so navigating there
