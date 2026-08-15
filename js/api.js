@@ -1,4 +1,4 @@
-import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=38';
+import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=39';
 
 export async function vndbQuery(endpoint, body){
   const res = await fetch(API + '/' + endpoint, {
@@ -20,6 +20,13 @@ function shuffle(arr){
   return arr;
 }
 
+// How many independent random draws to split a list into. More draws means titles get
+// pulled from more scattered positions across the matching pool instead of one
+// contiguous block, since VNDB's IDs cluster somewhat by when a title was added, one
+// random page alone can still land on a run of related/same-era titles.
+const DESIRED_DRAWS = 5;
+const MIN_CHUNK_SIZE = 5; // keeps draws from being pointlessly tiny on small lists
+
 export async function runQuery(filters, listSize){
   const countData = await vndbQuery('vn', { filters, fields:'id', results:1, count:true });
   const count = countData.count || 0;
@@ -27,37 +34,42 @@ export async function runQuery(filters, listSize){
 
   const effectiveSize = Math.min(listSize, count);
 
-  if(effectiveSize <= PER_PAGE){
-    // Random page (not always page 1) is what makes repeated generates return different
-    // VNs. Restricted to FULL pages only: if count isn't an exact multiple of effectiveSize,
-    // the trailing page holds just the remainder, and landing on it silently returns fewer
-    // results than requested even though enough matches exist elsewhere in the set.
-    const fullPages = Math.max(1, Math.floor(count / effectiveSize));
+  let numDraws = Math.max(1, Math.min(DESIRED_DRAWS, effectiveSize, Math.floor(effectiveSize / MIN_CHUNK_SIZE) || 1));
+  // safety bound in case effectiveSize is ever large enough that a chunk would exceed
+  // VNDB's single-request cap, not reachable with the sizes this app currently offers
+  while(Math.ceil(effectiveSize / numDraws) > PER_PAGE) numDraws++;
+
+  const baseChunk = Math.floor(effectiveSize / numDraws);
+  const remainder = effectiveSize % numDraws;
+
+  const drawPromises = [];
+  for(let i = 0; i < numDraws; i++){
+    const chunkSize = baseChunk + (i < remainder ? 1 : 0); // spreads the remainder across the first few draws
+    if(chunkSize <= 0) continue;
+    // Full pages only, same reasoning as before: a page sized to a chunk that isn't a
+    // full page could land on a trailing partial page and return fewer than requested.
+    const fullPages = Math.max(1, Math.floor(count / chunkSize));
     const randomPage = Math.floor(Math.random() * fullPages) + 1;
-    const data = await vndbQuery('vn', { filters, fields: VN_FIELDS, results:effectiveSize, page:randomPage, sort:'id' });
-    const results = shuffle(data.results || []);
-    return { count, results };
+    drawPromises.push(
+      vndbQuery('vn', { filters, fields: VN_FIELDS, results: chunkSize, page: randomPage, sort: 'id' })
+    );
   }
 
-  // VNDB caps a single request at PER_PAGE, so bigger lists need several stitched together
-  const pagesNeeded = Math.ceil(effectiveSize / PER_PAGE);
-  // Same full-page problem as above, but in item offsets rather than page numbers, since
-  // pagesNeeded pages starting too late could still end with a partially-filled last page
-  const maxOffset = count - effectiveSize;
-  const maxStartPage = Math.max(1, Math.floor(maxOffset / PER_PAGE) + 1);
-  const startPage = 1 + Math.floor(Math.random() * maxStartPage);
+  const drawResponses = await Promise.all(drawPromises);
 
-  const pageNums = [];
-  for(let p = startPage; p < startPage + pagesNeeded; p++) pageNums.push(p);
-
-  // parallel, not sequential, waiting on each one in turn would make large lists slow
-  const pageResponses = await Promise.all(
-    pageNums.map(p => vndbQuery('vn', { filters, fields: VN_FIELDS, results:PER_PAGE, page:p, sort:'id' }))
-  );
-
+  // separate random draws can coincidentally land on the same page and return the same
+  // VN more than once, deduped here before shuffling
+  const seen = new Set();
   let results = [];
-  pageResponses.forEach(d => { results = results.concat(d.results || []); });
+  drawResponses.forEach(d => {
+    (d.results || []).forEach(vn => {
+      if(!seen.has(vn.id)){
+        seen.add(vn.id);
+        results.push(vn);
+      }
+    });
+  });
 
-  results = shuffle(results.slice(0, effectiveSize)); // last page in range may return fewer than requested
+  results = shuffle(results).slice(0, effectiveSize);
   return { count, results };
 }
