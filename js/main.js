@@ -1,12 +1,12 @@
-import { els } from './dom.js?v=36';
-import { state } from './state.js?v=36';
-import { runQuery } from './api.js?v=36';
-import { buildFilters, describeFilters } from './filters.js?v=36';
-import { resetFilterUI } from './filterControls.js?v=36';
-import { makeTagPicker } from './tagPicker.js?v=36';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=36';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=36';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=36';
+import { els } from './dom.js?v=38';
+import { state } from './state.js?v=38';
+import { runQuery } from './api.js?v=38';
+import { buildFilters, describeFilters } from './filters.js?v=38';
+import { resetFilterUI } from './filterControls.js?v=38';
+import { makeTagPicker } from './tagPicker.js?v=38';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=38';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=38';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=38';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
@@ -72,7 +72,7 @@ async function loadInitialPick(){
       state.list = [pool[0]]; // already shuffled by runQuery
       state.index = 0;
       state.isPlaceholder = true;
-      setStatus('A random pick to start. Set filters on the left and generate your own list.');
+      setStatus('A random pick to start. Filters are on the left, use them to generate a list.');
       showCurrent();
     } else {
       setStatus('Set your filters and generate a list to begin.');

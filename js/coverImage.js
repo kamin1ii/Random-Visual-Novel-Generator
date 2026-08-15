@@ -1,5 +1,5 @@
-import { els } from './dom.js?v=36';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=36';
+import { els } from './dom.js?v=38';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=38';
 
 // Routes through our own /img/<path> proxy instead of VNDB directly. The proxy caches
 // each image in R2 on first request, so VNDB sees one request per unique cover total,
@@ -113,7 +113,7 @@ export function showCover(vn, isRetry){
     els.coverLoading.classList.remove('show');
     els.coverFallback.textContent = isRetry
       ? 'No cover image found.'
-      : 'Couldn\u2019t load the cover, retrying in 10s\u2026';
+      : 'Failed to load the cover, retrying in 10s\u2026';
     els.coverFallback.style.display = 'flex';
     if(!isRetry){
       setTimeout(() => {
