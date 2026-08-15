@@ -48,5 +48,7 @@ export const els = {
   revealPrefCheckbox: document.getElementById('revealPrefCheckbox'),
   noResultsModal: document.getElementById('noResultsModal'),
   noResultsBody: document.getElementById('noResultsBody'),
-  noResultsOk: document.getElementById('noResultsOk')
+  noResultsOk: document.getElementById('noResultsOk'),
+  rateLimitModal: document.getElementById('rateLimitModal'),
+  rateLimitOk: document.getElementById('rateLimitOk')
 };

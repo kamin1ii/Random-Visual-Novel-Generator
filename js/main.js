@@ -1,12 +1,12 @@
-import { els } from './dom.js?v=39';
-import { state } from './state.js?v=39';
-import { runQuery } from './api.js?v=39';
-import { buildFilters, describeFilters } from './filters.js?v=39';
-import { resetFilterUI } from './filterControls.js?v=39';
-import { makeTagPicker } from './tagPicker.js?v=39';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=39';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=39';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=39';
+import { els } from './dom.js?v=40';
+import { state } from './state.js?v=40';
+import { runQuery } from './api.js?v=40';
+import { buildFilters, describeFilters } from './filters.js?v=40';
+import { resetFilterUI } from './filterControls.js?v=40';
+import { makeTagPicker } from './tagPicker.js?v=40';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=40';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=40';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=40';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
@@ -28,7 +28,28 @@ els.noResultsModal.addEventListener('click', (e) => {
   if(e.target === els.noResultsModal) closeNoResultsModal();
 });
 
+function showRateLimitModal(){
+  els.rateLimitModal.classList.add('open');
+}
+function closeRateLimitModal(){
+  els.rateLimitModal.classList.remove('open');
+}
+function isRateLimitModalOpen(){
+  return els.rateLimitModal.classList.contains('open');
+}
+els.rateLimitOk.addEventListener('click', closeRateLimitModal);
+els.rateLimitModal.addEventListener('click', (e) => {
+  if(e.target === els.rateLimitModal) closeRateLimitModal();
+});
+
+let rateLimitedUntil = 0;
+const RATE_LIMIT_COOLDOWN_MS = 90000; // matches the "a minute or two" wording in the modal
+
 async function generateList(){
+  if(Date.now() < rateLimitedUntil){
+    showRateLimitModal(); // still cooling down, re-show without calling VNDB again
+    return;
+  }
   els.generateBtn.disabled = true;
   setStatus('Searching VNDB…');
   try{
@@ -53,7 +74,12 @@ async function generateList(){
     els.nextBtn.disabled = false;
     showCurrent();
   }catch(err){
-    setStatus(err.message || 'Something went wrong reaching VNDB.');
+    if(err.status === 429){
+      rateLimitedUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+      showRateLimitModal();
+    } else {
+      setStatus(err.message || 'Something went wrong reaching VNDB.');
+    }
   }finally{
     els.generateBtn.disabled = false;
   }
@@ -102,6 +128,10 @@ els.card.addEventListener('click', (e) => {
 
 // on document, not the card, so arrow keys work without clicking the card first
 document.addEventListener('keydown', (e) => {
+  if(isRateLimitModalOpen()){
+    if(e.key === 'Escape') closeRateLimitModal();
+    return;
+  }
   if(isNoResultsModalOpen()){
     if(e.key === 'Escape') closeNoResultsModal();
     return;

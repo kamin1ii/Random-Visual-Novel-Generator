@@ -1,4 +1,4 @@
-import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=39';
+import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=40';
 
 export async function vndbQuery(endpoint, body){
   const res = await fetch(API + '/' + endpoint, {
@@ -7,7 +7,11 @@ export async function vndbQuery(endpoint, body){
     body: JSON.stringify(body)
   });
   // fetch() only rejects on network failure, not HTTP error codes
-  if(!res.ok) throw new Error('VNDB request failed (' + res.status + ')');
+  if(!res.ok){
+    const err = new Error('VNDB request failed (' + res.status + ')');
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
 }
 
