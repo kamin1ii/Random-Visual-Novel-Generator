@@ -1,12 +1,12 @@
-import { els } from './dom.js?v=41';
-import { state } from './state.js?v=41';
-import { runQuery } from './api.js?v=41';
-import { buildFilters, describeFilters } from './filters.js?v=41';
-import { resetFilterUI } from './filterControls.js?v=41';
-import { makeTagPicker } from './tagPicker.js?v=41';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=41';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=41';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=41';
+import { els } from './dom.js?v=42';
+import { state } from './state.js?v=42';
+import { runQuery, fetchRandomPool } from './api.js?v=42';
+import { buildFilters, describeFilters } from './filters.js?v=42';
+import { resetFilterUI } from './filterControls.js?v=42';
+import { makeTagPicker } from './tagPicker.js?v=42';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=42';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=42';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=42';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
@@ -96,11 +96,11 @@ async function generateList(){
 async function loadInitialPick(){
   try{
     const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"]];
-    const { results } = await runQuery(filters, 20);
+    const { results } = await fetchRandomPool(filters, 20);
     const nonExplicit = results.filter(vn => !(vn.image && vn.image.sexual != null && vn.image.sexual >= SENSITIVE_THRESHOLD));
     const pool = nonExplicit.length ? nonExplicit : results; // fallback for the rare case every pick got flagged
     if(pool.length){
-      state.list = [pool[0]]; // already shuffled by runQuery
+      state.list = [pool[0]]; // already shuffled by fetchRandomPool
       state.index = 0;
       state.isPlaceholder = true;
       setStatus('A random pick to start. Filters are on the left, use them to generate a list.');
