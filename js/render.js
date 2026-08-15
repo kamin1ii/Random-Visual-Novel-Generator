@@ -1,7 +1,7 @@
-import { els } from './dom.js?v=43';
-import { state } from './state.js?v=43';
-import { PLATFORM_LABELS, LENGTH_LABELS } from './constants.js?v=43';
-import { showCover, preloadAround } from './coverImage.js?v=43';
+import { els } from './dom.js?v=45';
+import { state } from './state.js?v=45';
+import { PLATFORM_LABELS, LENGTH_LABELS } from './constants.js?v=45';
+import { showCover, preloadAround } from './coverImage.js?v=45';
 
 export function cleanDescription(raw){
   if(!raw) return 'No synopsis on file for this title.';
