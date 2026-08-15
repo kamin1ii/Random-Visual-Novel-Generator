@@ -37,7 +37,7 @@ export const els = {
   titleMain: document.getElementById('titleMain'),
   titleAlt: document.getElementById('titleAlt'),
   tagRow: document.getElementById('tagRow'),
-  dialogue: document.getElementById('dialogue'),
+  synopsis: document.getElementById('synopsis'),
   vndbLink: document.getElementById('vndbLink'),
   includeModeToggle: document.getElementById('includeModeToggle'),
   excludeModeToggle: document.getElementById('excludeModeToggle'),

@@ -1,6 +1,6 @@
-import { state } from './state.js?v=47';
-import { els } from './dom.js?v=47';
-import { LENGTH_LABELS } from './constants.js?v=47';
+import { state } from './state.js?v=48';
+import { els } from './dom.js?v=48';
+import { LENGTH_LABELS } from './constants.js?v=48';
 
 export function buildFilters(){
   const clauses = [["has_description","=",1]];

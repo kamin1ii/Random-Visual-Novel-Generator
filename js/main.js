@@ -1,11 +1,11 @@
-import { els } from './dom.js?v=47';
-import { state } from './state.js?v=47';
-import { runQuery, fetchRandomPool } from './api.js?v=47';
-import { buildFilters, describeFilters } from './filters.js?v=47';
-import { resetFilterUI } from './filterControls.js?v=47';
-import { makeTagPicker, renderChips } from './tagPicker.js?v=47';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=47';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=47';
+import { els } from './dom.js?v=48';
+import { state } from './state.js?v=48';
+import { runQuery, fetchRandomPool } from './api.js?v=48';
+import { buildFilters, describeFilters } from './filters.js?v=48';
+import { resetFilterUI } from './filterControls.js?v=48';
+import { makeTagPicker, renderChips } from './tagPicker.js?v=48';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=48';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=48';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
@@ -116,7 +116,7 @@ async function loadInitialPick(){
       setStatus('VNDB rate limit reached. Wait a minute or two, then generate a list.');
       els.titleMain.textContent = 'Rate limited';
       els.titleAlt.textContent = '';
-      els.dialogue.textContent = 'VNDB\u2019s rate limit was reached while loading a starting pick. This isn\u2019t a missing cover, nothing was fetched yet, wait a minute or two and generate a list instead.';
+      els.synopsis.textContent = 'VNDB\u2019s rate limit was reached while loading a starting pick. This isn\u2019t a missing cover, nothing was fetched yet, wait a minute or two and generate a list instead.';
     } else {
       setStatus('Set your filters and generate a list to begin.');
     }

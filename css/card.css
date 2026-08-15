@@ -73,7 +73,7 @@
   display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:22px;
   /* Capped so a title with a huge tag list (once "+N more" is expanded) can't eat the
      space meant for the synopsis and footer below it, since content-col isn't itself
-     scrollable, only this row and .dialogue are, each independently. */
+     scrollable, only this row and .synopsis are, each independently. */
   max-height:110px;overflow-y:auto;padding-right:4px;
   scrollbar-width:thin;
   scrollbar-color:var(--panel-edge) transparent;
@@ -99,16 +99,16 @@
 }
 .tag.tag-all-link:hover{color:var(--gold);border-color:var(--gold-dim);}
 
-.dialogue{
+.synopsis{
   font-size:14px;line-height:1.6;color:var(--text);margin:0 0 12px;
   flex:1;min-height:0;overflow-y:auto;padding-right:6px; /* absorbs all leftover space and scrolls internally, so a long synopsis never grows the card past its fixed height */
   scrollbar-width:thin;
   scrollbar-color:var(--panel-edge) transparent;
 }
-.dialogue::-webkit-scrollbar{width:7px;}
-.dialogue::-webkit-scrollbar-track{background:transparent;}
-.dialogue::-webkit-scrollbar-thumb{background:var(--panel-edge);border-radius:20px;}
-.dialogue::-webkit-scrollbar-thumb:hover{background:var(--gold-dim);}
+.synopsis::-webkit-scrollbar{width:7px;}
+.synopsis::-webkit-scrollbar-track{background:transparent;}
+.synopsis::-webkit-scrollbar-thumb{background:var(--panel-edge);border-radius:20px;}
+.synopsis::-webkit-scrollbar-thumb:hover{background:var(--gold-dim);}
 
 .card-footer{
   display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between;
