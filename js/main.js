@@ -1,12 +1,12 @@
-import { els } from './dom.js?v=40';
-import { state } from './state.js?v=40';
-import { runQuery } from './api.js?v=40';
-import { buildFilters, describeFilters } from './filters.js?v=40';
-import { resetFilterUI } from './filterControls.js?v=40';
-import { makeTagPicker } from './tagPicker.js?v=40';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=40';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=40';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=40';
+import { els } from './dom.js?v=41';
+import { state } from './state.js?v=41';
+import { runQuery } from './api.js?v=41';
+import { buildFilters, describeFilters } from './filters.js?v=41';
+import { resetFilterUI } from './filterControls.js?v=41';
+import { makeTagPicker } from './tagPicker.js?v=41';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=41';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=41';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=41';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
@@ -45,6 +45,11 @@ els.rateLimitModal.addEventListener('click', (e) => {
 let rateLimitedUntil = 0;
 const RATE_LIMIT_COOLDOWN_MS = 90000; // matches the "a minute or two" wording in the modal
 
+function startRateLimitCooldown(){
+  rateLimitedUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+  showRateLimitModal();
+}
+
 async function generateList(){
   if(Date.now() < rateLimitedUntil){
     showRateLimitModal(); // still cooling down, re-show without calling VNDB again
@@ -75,8 +80,8 @@ async function generateList(){
     showCurrent();
   }catch(err){
     if(err.status === 429){
-      rateLimitedUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
-      showRateLimitModal();
+      startRateLimitCooldown();
+      setStatus('VNDB rate limit reached. Wait a minute or two before trying again.');
     } else {
       setStatus(err.message || 'Something went wrong reaching VNDB.');
     }
@@ -104,7 +109,15 @@ async function loadInitialPick(){
       setStatus('Set your filters and generate a list to begin.');
     }
   }catch(err){
-    setStatus('Set your filters and generate a list to begin.');
+    if(err.status === 429){
+      startRateLimitCooldown();
+      setStatus('VNDB rate limit reached. Wait a minute or two, then generate a list.');
+      els.titleMain.textContent = 'Rate limited';
+      els.titleAlt.textContent = '';
+      els.dialogue.textContent = 'VNDB\u2019s rate limit was reached while loading a starting pick. This isn\u2019t a missing cover, nothing was fetched yet, wait a minute or two and generate a list instead.';
+    } else {
+      setStatus('Set your filters and generate a list to begin.');
+    }
   }
 }
 
