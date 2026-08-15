@@ -1,6 +1,6 @@
 /* Single breakpoint: below 900px the two-column layout no longer has room, so the page
    stacks into one column and lets the whole page scroll instead of relying on the
-   desktop layout's internal scroll regions (sidebar, dialogue). */
+   desktop layout's internal scroll regions (sidebar, synopsis). */
 @media (max-width:900px){
   .layout{grid-template-columns:1fr;}
   .sidebar{position:static;max-height:none;}
@@ -8,5 +8,5 @@
   .card{flex-direction:column;height:auto;}
   .cover-wrap{width:100%;height:auto;aspect-ratio:3/4;}
   .content-col{padding:18px;}
-  .dialogue{overflow-y:visible;max-height:none;}
+  .synopsis{overflow-y:visible;max-height:none;}
 }

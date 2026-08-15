@@ -1,7 +1,7 @@
-import { els } from './dom.js?v=47';
-import { state } from './state.js?v=47';
-import { PLATFORM_LABELS, LENGTH_LABELS } from './constants.js?v=47';
-import { showCover, preloadAround } from './coverImage.js?v=47';
+import { els } from './dom.js?v=48';
+import { state } from './state.js?v=48';
+import { PLATFORM_LABELS, LENGTH_LABELS } from './constants.js?v=48';
+import { showCover, preloadAround } from './coverImage.js?v=48';
 
 export function cleanDescription(raw){
   if(!raw) return 'No synopsis on file for this title.';
@@ -124,7 +124,7 @@ export function showCurrent(){
   renderTags(vn);
   els.vndbLink.href = 'https://vndb.org/' + vn.id;
   els.coverLink.href = 'https://vndb.org/' + vn.id;
-  els.dialogue.textContent = cleanDescription(vn.description);
+  els.synopsis.textContent = cleanDescription(vn.description);
 
   preloadAround(state.list, state.index);
 }
