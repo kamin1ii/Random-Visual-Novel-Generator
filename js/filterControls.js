@@ -1,6 +1,6 @@
-import { els } from './dom.js?v=46';
-import { state } from './state.js?v=46';
-import { renderChips } from './tagPicker.js?v=46';
+import { els } from './dom.js?v=47';
+import { state } from './state.js?v=47';
+import { renderChips } from './tagPicker.js?v=47';
 
 // Sidebar's own interactive behavior (slider label, toggle buttons, sub-checkboxes),
 // separate from filters.js which reads these same controls to build a query.
@@ -72,8 +72,14 @@ export function resetFilterUI(){
   // default, so removing it (or deliberately keeping it) isn't silently undone every
   // time the rest of the filters get reset.
   const hadNukigeExcluded = state.excludeTags.some(t => t.id === 214);
-  state.includeTags = [];
-  state.excludeTags = hadNukigeExcluded ? [{ id: 214, name: 'Nukige' }] : [];
+  // Cleared in place (length = 0), not reassigned (= []). tagPicker.js's closures
+  // captured these exact array references at setup time, replacing them with brand new
+  // arrays here would silently detach those closures from state, chips would still
+  // render correctly (same closure-held array) but buildFilters() would read the new,
+  // permanently-empty reference and never see anything added after a reset.
+  state.includeTags.length = 0;
+  state.excludeTags.length = 0;
+  if(hadNukigeExcluded) state.excludeTags.push({ id: 214, name: 'Nukige' });
   renderChips(state.includeTags, els.includeChips, 'include');
   renderChips(state.excludeTags, els.excludeChips, 'exclude');
 
