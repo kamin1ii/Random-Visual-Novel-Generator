@@ -13,3 +13,16 @@ binding = "ASSETS"
 [[r2_buckets]]
 binding = "COVERS_BUCKET"
 bucket_name = "rvng-covers"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
