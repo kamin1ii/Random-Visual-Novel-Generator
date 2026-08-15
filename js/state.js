@@ -3,7 +3,7 @@
 // state around as function arguments everywhere.
 export const state = {
   includeTags: [],
-  excludeTags: [],
+  excludeTags: [{ id: 214, name: 'Nukige' }], // excluded by default, removable via the chip's × like any other tag
   includeMode: 'and',
   excludeMode: 'or',
   lengths: new Set(),
