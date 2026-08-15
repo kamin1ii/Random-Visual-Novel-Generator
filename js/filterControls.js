@@ -1,6 +1,6 @@
-import { els } from './dom.js?v=45';
-import { state } from './state.js?v=45';
-import { renderChips } from './tagPicker.js?v=45';
+import { els } from './dom.js?v=46';
+import { state } from './state.js?v=46';
+import { renderChips } from './tagPicker.js?v=46';
 
 // Sidebar's own interactive behavior (slider label, toggle buttons, sub checkboxes),
 // separate from filters.js which reads these same controls to build a query.
@@ -67,13 +67,23 @@ export function resetFilterUI(){
   els.yearTo.value = '';
   state.lengths.clear();
   els.lengthGrid.querySelectorAll('.len-toggle').forEach(b => b.classList.remove('active'));
+
+  // Nukige's exclusion is preserved across a reset instead of forced back to the
+  // default, so removing it (or deliberately keeping it) isn't silently undone every
+  // time the rest of the filters get reset.
+  const hadNukigeExcluded = state.excludeTags.some(t => t.id === 214);
   state.includeTags = [];
-  state.excludeTags = [{ id: 214, name: 'Nukige' }];
+  state.excludeTags = hadNukigeExcluded ? [{ id: 214, name: 'Nukige' }] : [];
   renderChips(state.includeTags, els.includeChips, 'include');
   renderChips(state.excludeTags, els.excludeChips, 'exclude');
+
   els.listSize.value = '50';
   state.includeMode = 'and';
   state.excludeMode = 'or';
-  els.includeModeToggle.querySelectorAll('.len-toggle').forEach((b,i) => b.classList.toggle('active', i===0));
-  els.excludeModeToggle.querySelectorAll('.len-toggle').forEach((b,i) => b.classList.toggle('active', i===0));
+  // matched by data-mode value rather than a hardcoded index, since the two toggles
+  // don't have the same button order, and first for include, or first for exclude,
+  // the earlier index based version activated whichever button was first regardless
+  // of which mode that actually was, breaking the exclude toggle's visual state
+  els.includeModeToggle.querySelectorAll('.len-toggle').forEach(b => b.classList.toggle('active', b.dataset.mode === 'and'));
+  els.excludeModeToggle.querySelectorAll('.len-toggle').forEach(b => b.classList.toggle('active', b.dataset.mode === 'or'));
 }
