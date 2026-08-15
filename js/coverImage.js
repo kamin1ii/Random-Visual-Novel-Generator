@@ -1,5 +1,5 @@
-import { els } from './dom.js?v=46';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=46';
+import { els } from './dom.js?v=47';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=47';
 
 // Routes through our own /img/<path> proxy instead of VNDB directly. The proxy caches
 // each image in R2 on first request, so VNDB sees one request per unique cover total,
