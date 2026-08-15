@@ -1,4 +1,4 @@
-import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=41';
+import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=42';
 
 export async function vndbQuery(endpoint, body){
   const res = await fetch(API + '/' + endpoint, {
@@ -22,6 +22,24 @@ function shuffle(arr){
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+// Single-request version for when only a small pool is needed to pick ONE item from
+// (like the startup placeholder pick), not a full list to browse. Scattering across
+// multiple draws (see runQuery below) only matters when someone's actually browsing
+// many titles from it, since only one item from this pool ever gets used, that concern
+// doesn't apply, one request for a modest pool is all this needs.
+export async function fetchRandomPool(filters, poolSize){
+  const countData = await vndbQuery('vn', { filters, fields:'id', results:1, count:true });
+  const count = countData.count || 0;
+  if(!count) return { count:0, results:[] };
+
+  const effectiveSize = Math.min(poolSize, count);
+  const fullPages = Math.max(1, Math.floor(count / effectiveSize));
+  const randomPage = Math.floor(Math.random() * fullPages) + 1;
+  const data = await vndbQuery('vn', { filters, fields: VN_FIELDS, results:effectiveSize, page:randomPage, sort:'id' });
+  const results = shuffle(data.results || []);
+  return { count, results };
 }
 
 // How many independent random draws to split a list into. More draws means titles get

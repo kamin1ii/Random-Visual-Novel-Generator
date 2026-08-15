@@ -1,6 +1,6 @@
-import { els } from './dom.js?v=41';
-import { state } from './state.js?v=41';
-import { renderChips } from './tagPicker.js?v=41';
+import { els } from './dom.js?v=42';
+import { state } from './state.js?v=42';
+import { renderChips } from './tagPicker.js?v=42';
 
 // Sidebar's own interactive behavior (slider label, toggle buttons, sub-checkboxes),
 // separate from filters.js which reads these same controls to build a query.
