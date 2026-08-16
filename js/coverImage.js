@@ -45,7 +45,21 @@ function preloadImages(vns){
 let preloadDebounceTimer = null;
 const PRELOAD_DEBOUNCE_MS = 200;
 
-export function preloadAround(list, index, radius = 5){
+// Forward only until the person actually navigates backward at least once, a fresh
+// generate almost never gets browsed backward immediately, so preloading that direction
+// upfront was wasted requests against R2 for the common case. Reset per generate, not
+// per navigation step, see resetPreloadDirection below.
+let hasGoneBack = false;
+
+export function resetPreloadDirection(){
+  hasGoneBack = false;
+}
+
+export function markWentBackward(){
+  hasGoneBack = true;
+}
+
+export function preloadAround(list, index, radius = 4){
   // A list of 1 (the startup pick) has no genuine neighbors, every offset would wrap
   // back to the same single item, redundantly fetching the image already being shown again.
   if(list.length <= 1) return;
@@ -54,10 +68,15 @@ export function preloadAround(list, index, radius = 5){
     const schedule = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
     schedule(() => {
       const targets = [];
-      for(let offset = -radius; offset <= radius; offset++){
-        if(offset === 0) continue;
-        const i = ((index + offset) % list.length + list.length) % list.length; // wraps at both ends
-        targets.push(list[i]);
+      for(let offset = 1; offset <= radius; offset++){
+        const fi = ((index + offset) % list.length + list.length) % list.length; // wraps at the end
+        targets.push(list[fi]);
+      }
+      if(hasGoneBack){
+        for(let offset = 1; offset <= radius; offset++){
+          const bi = ((index - offset) % list.length + list.length) % list.length; // wraps at the start
+          targets.push(list[bi]);
+        }
       }
       preloadImages(targets);
     });
