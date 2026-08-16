@@ -4,7 +4,7 @@ import { runQuery, fetchRandomPool } from './api.js?v=53';
 import { buildFilters, describeFilters } from './filters.js?v=53';
 import { resetFilterUI } from './filterControls.js?v=53';
 import { makeTagPicker, renderChips } from './tagPicker.js?v=53';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=53';
+import { showCurrent, setStatus, renderActiveFilters, resetPreloadDirection, markWentBackward } from './render.js?v=53';
 import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=53';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
@@ -67,6 +67,7 @@ async function generateList(){
     state.list = results;
     state.index = 0;
     state.isPlaceholder = false;
+    resetPreloadDirection();
     setStatus(count.toLocaleString() + ' titles match. Showing ' + results.length + ' of them.');
     renderActiveFilters(describeFilters());
     els.prevBtn.disabled = false;
@@ -121,6 +122,7 @@ function goNext(){
 
 function goPrev(){
   if(!state.list.length) return;
+  markWentBackward();
   state.index = (state.index - 1 + state.list.length) % state.list.length;
   showCurrent();
 }
