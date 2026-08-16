@@ -1,4 +1,4 @@
-import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=49';
+import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=50';
 
 export async function vndbQuery(endpoint, body){
   const res = await fetch(API + '/' + endpoint, {
@@ -64,6 +64,13 @@ export async function runQuery(filters, listSize){
   const baseChunk = Math.floor(effectiveSize / numDraws);
   const remainder = effectiveSize % numDraws;
 
+  // Tracked per chunk size, since the pool of valid page numbers depends on chunkSize
+  // (draws can have slightly different sizes when effectiveSize doesn't divide evenly).
+  // Without this, independent random draws can coincidentally land on the same page,
+  // especially when the matching pool is small relative to numDraws, and get silently
+  // deduped away afterward, quietly returning far fewer titles than requested.
+  const usedPagesByChunkSize = new Map();
+
   const drawPromises = [];
   for(let i = 0; i < numDraws; i++){
     const chunkSize = baseChunk + (i < remainder ? 1 : 0); // spreads the remainder across the first few draws
@@ -71,7 +78,18 @@ export async function runQuery(filters, listSize){
     // Full pages only, same reasoning as before: a page sized to a chunk that isn't a
     // full page could land on a trailing partial page and return fewer than requested.
     const fullPages = Math.max(1, Math.floor(count / chunkSize));
-    const randomPage = Math.floor(Math.random() * fullPages) + 1;
+
+    if(!usedPagesByChunkSize.has(chunkSize)) usedPagesByChunkSize.set(chunkSize, new Set());
+    const usedPages = usedPagesByChunkSize.get(chunkSize);
+
+    let randomPage;
+    let attempts = 0;
+    do{
+      randomPage = Math.floor(Math.random() * fullPages) + 1;
+      attempts++;
+    }while(usedPages.has(randomPage) && attempts < fullPages); // gives up once every page's been tried, fullPages < numDraws means some overlap is unavoidable
+    usedPages.add(randomPage);
+
     drawPromises.push(
       vndbQuery('vn', { filters, fields: VN_FIELDS, results: chunkSize, page: randomPage, sort: 'id' })
     );
