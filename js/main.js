@@ -1,11 +1,11 @@
-import { els } from './dom.js?v=52';
-import { state } from './state.js?v=52';
-import { runQuery, fetchRandomPool } from './api.js?v=52';
-import { buildFilters, describeFilters } from './filters.js?v=52';
-import { resetFilterUI } from './filterControls.js?v=52';
-import { makeTagPicker, renderChips } from './tagPicker.js?v=52';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=52';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=52';
+import { els } from './dom.js?v=53';
+import { state } from './state.js?v=53';
+import { runQuery, fetchRandomPool } from './api.js?v=53';
+import { buildFilters, describeFilters } from './filters.js?v=53';
+import { resetFilterUI } from './filterControls.js?v=53';
+import { makeTagPicker, renderChips } from './tagPicker.js?v=53';
+import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=53';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=53';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
@@ -15,48 +15,38 @@ makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.exc
 renderChips(state.includeTags, els.includeChips, 'include');
 renderChips(state.excludeTags, els.excludeChips, 'exclude');
 
-// too small to need its own file like revealModal.js, that one manages a persisted
-// preference across two controls, this is just an alert dialog
+// one small reusable modal helper instead of writing the same show/close/isOpen/
+// click-outside logic out twice, only the no-results modal needs a dynamic message
+function makeModal(modalEl, okBtn){
+  function show(){ modalEl.classList.add('open'); }
+  function close(){ modalEl.classList.remove('open'); }
+  function isOpen(){ return modalEl.classList.contains('open'); }
+  okBtn.addEventListener('click', close);
+  modalEl.addEventListener('click', (e) => {
+    if(e.target === modalEl) close();
+  });
+  return { show, close, isOpen };
+}
+
+const noResultsModal = makeModal(els.noResultsModal, els.noResultsOk);
+const rateLimitModal = makeModal(els.rateLimitModal, els.rateLimitOk);
+
 function showNoResultsModal(message){
   els.noResultsBody.textContent = message;
-  els.noResultsModal.classList.add('open');
+  noResultsModal.show();
 }
-function closeNoResultsModal(){
-  els.noResultsModal.classList.remove('open');
-}
-function isNoResultsModalOpen(){
-  return els.noResultsModal.classList.contains('open');
-}
-els.noResultsOk.addEventListener('click', closeNoResultsModal);
-els.noResultsModal.addEventListener('click', (e) => {
-  if(e.target === els.noResultsModal) closeNoResultsModal();
-});
-
-function showRateLimitModal(){
-  els.rateLimitModal.classList.add('open');
-}
-function closeRateLimitModal(){
-  els.rateLimitModal.classList.remove('open');
-}
-function isRateLimitModalOpen(){
-  return els.rateLimitModal.classList.contains('open');
-}
-els.rateLimitOk.addEventListener('click', closeRateLimitModal);
-els.rateLimitModal.addEventListener('click', (e) => {
-  if(e.target === els.rateLimitModal) closeRateLimitModal();
-});
 
 let rateLimitedUntil = 0;
-const RATE_LIMIT_COOLDOWN_MS = 90000; // matches the "a minute or two" wording in the modal
+const RATE_LIMIT_COOLDOWN_MS = 90000;
 
 function startRateLimitCooldown(){
   rateLimitedUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
-  showRateLimitModal();
+  rateLimitModal.show();
 }
 
 async function generateList(){
   if(Date.now() < rateLimitedUntil){
-    showRateLimitModal(); // still cooling down, re-show without calling VNDB again
+    rateLimitModal.show(); // still cooling down, re-show without calling VNDB again
     return;
   }
   els.generateBtn.disabled = true;
@@ -143,12 +133,12 @@ els.card.addEventListener('click', (e) => {
 
 // on document, not the card, so arrow keys work without clicking the card first
 document.addEventListener('keydown', (e) => {
-  if(isRateLimitModalOpen()){
-    if(e.key === 'Escape') closeRateLimitModal();
+  if(rateLimitModal.isOpen()){
+    if(e.key === 'Escape') rateLimitModal.close();
     return;
   }
-  if(isNoResultsModalOpen()){
-    if(e.key === 'Escape') closeNoResultsModal();
+  if(noResultsModal.isOpen()){
+    if(e.key === 'Escape') noResultsModal.close();
     return;
   }
   if(isRevealModalOpen()){
