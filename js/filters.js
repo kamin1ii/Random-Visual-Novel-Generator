@@ -33,9 +33,15 @@ export function buildFilters(){
   if(!isNaN(yearFrom)) clauses.push(["released",">=", yearFrom + "-01-01"]);
   if(!isNaN(yearTo)) clauses.push(["released","<=", yearTo + "-12-31"]);
 
+  // 0 keeps tag matches from firing off a tag that's flagged as a spoiler for that
+  // specific title, matching purely because of one would itself leak the spoiler, since
+  // the card's own tag display already hides spoiler flagged tags from view. 2 (checkbox
+  // off) matches at any spoiler level, needed for tags that mostly only apply at a
+  // nonzero level in the first place.
+  const spoilerCap = els.hideSpoilerTagMatches.checked ? 0 : 2;
+
   if(state.includeTags.length){
-    // spoiler cap of 2, not the default 0, since many story/genre tags only apply at a nonzero level
-    const incClauses = state.includeTags.map(t => ["tag","=",[t.id,2,0]]);
+    const incClauses = state.includeTags.map(t => ["tag","=",[t.id,spoilerCap,0]]);
     if(state.includeMode === 'or' && incClauses.length > 1){
       clauses.push(["or", ...incClauses]);
     } else {
@@ -44,7 +50,7 @@ export function buildFilters(){
   }
 
   if(state.excludeTags.length){
-    const excClauses = state.excludeTags.map(t => ["tag","!=",[t.id,2,0]]);
+    const excClauses = state.excludeTags.map(t => ["tag","!=",[t.id,spoilerCap,0]]);
     if(state.excludeMode === 'and' && excClauses.length > 1){
       // "exclude only if it has every one" means keep if missing at least one, an OR of negations
       clauses.push(["or", ...excClauses]);

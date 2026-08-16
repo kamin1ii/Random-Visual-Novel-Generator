@@ -66,8 +66,26 @@ function renderTags(vn){
   els.tagRow.innerHTML = '';
   if(!Array.isArray(vn.tags)) return;
 
-  const tags = vn.tags
-    .filter(t => t.category === 'cont' && t.spoiler === 0)
+  const nonSpoilerTags = vn.tags.filter(t => t.category === 'cont' && t.spoiler === 0);
+
+  // Spoiler flagged tags the person specifically searched for (include or exclude)
+  // are shown anyway, picking that tag themselves already means they know about it,
+  // this doesn't reveal anything they didn't already ask for. Every other spoiler tag
+  // stays hidden. No extra VNDB call needed, spoiler flagged tags are already present
+  // in the same response, just filtered out of view by default.
+  // Our local tags.json stores bare integer IDs (214), but VNDB's live API returns tag
+  // IDs as prefixed strings in VN responses ("g214"), comparing them directly would
+  // never match, stripping any leading letters normalizes both sides to the same format.
+  function normalizeTagId(id){
+    return String(id).replace(/^\D+/, '');
+  }
+
+  const selectedTagIds = new Set([...state.includeTags, ...state.excludeTags].map(t => normalizeTagId(t.id)));
+  const selectedSpoilerTags = vn.tags.filter(t =>
+    t.category === 'cont' && t.spoiler > 0 && selectedTagIds.has(normalizeTagId(t.id))
+  );
+
+  const tags = [...nonSpoilerTags, ...selectedSpoilerTags]
     .sort((a,b) => (b.rating||0) - (a.rating||0));
 
   let expanded = false; // local to this render call, resets naturally on the next VN shown
