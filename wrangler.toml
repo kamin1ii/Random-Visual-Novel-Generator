@@ -26,3 +26,9 @@ invocation_logs = true
 
 [observability.traces]
 enabled = false
+
+# VN + tag database imported from VNDB's own dump, refreshed via refresh-vndb-db.mjs
+[[d1_databases]]
+binding = "VNDB_DB"
+database_name = "randomvn-db"
+database_id = "690aa2fc-340b-4854-bf0d-14cbe1ddee47"
