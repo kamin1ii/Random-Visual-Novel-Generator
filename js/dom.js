@@ -19,6 +19,7 @@ export const els = {
   excludeSuggest: document.getElementById('excludeSuggest'),
   excludeStatus: document.getElementById('excludeStatus'),
   excludeChips: document.getElementById('excludeChips'),
+  hideSpoilerTagMatches: document.getElementById('hideSpoilerTagMatches'),
   listSize: document.getElementById('listSize'),
   generateBtn: document.getElementById('generateBtn'),
   resetBtn: document.getElementById('resetBtn'),
