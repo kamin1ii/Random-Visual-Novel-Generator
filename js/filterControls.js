@@ -1,11 +1,14 @@
-import { els } from './dom.js?v=50';
-import { state } from './state.js?v=50';
-import { renderChips } from './tagPicker.js?v=50';
+import { els } from './dom.js?v=52';
+import { state } from './state.js?v=52';
+import { renderChips } from './tagPicker.js?v=52';
 
 // Sidebar's own interactive behavior (slider label, toggle buttons, sub checkboxes),
 // separate from filters.js which reads these same controls to build a query.
 
 els.minRating.addEventListener('input', () => {
+  if(parseFloat(els.minRating.value) === 0.5){
+    els.minRating.value = 1; // VNDB's rating filter has no meaningful distinction below 1, don't offer a step that looks like an option but isn't one
+  }
   const v = parseFloat(els.minRating.value);
   els.minRatingVal.textContent = v === 0 ? 'Any' : v.toFixed(1);
 });

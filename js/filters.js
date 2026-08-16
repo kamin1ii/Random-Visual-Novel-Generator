@@ -1,6 +1,6 @@
-import { state } from './state.js?v=50';
-import { els } from './dom.js?v=50';
-import { LENGTH_LABELS } from './constants.js?v=50';
+import { state } from './state.js?v=52';
+import { els } from './dom.js?v=52';
+import { LENGTH_LABELS } from './constants.js?v=52';
 
 export function buildFilters(){
   const clauses = [["has_description","=",1]];
@@ -9,7 +9,7 @@ export function buildFilters(){
   if(minVotes > 0) clauses.push(["votecount",">=",minVotes]);
 
   const minRating = parseFloat(els.minRating.value);
-  if(minRating > 0) clauses.push(["rating",">=",Math.round(minRating*10)]); // VNDB uses 0-100, UI shows 0-10
+  if(minRating > 0) clauses.push(["rating",">=",Math.max(10, Math.round(minRating*10))]); // VNDB uses 0-100 but rejects anything below 10, UI shows 0-9.5
 
   if(els.originalJapaneseOnly.checked) clauses.push(["olang","=","ja"]);
 
