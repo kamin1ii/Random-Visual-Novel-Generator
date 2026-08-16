@@ -1,4 +1,4 @@
-import { els } from './dom.js?v=49';
+import { els } from './dom.js?v=50';
 
 // Self-contained "confirm before revealing explicit art" flow, kept separate from
 // main.js so that file stays about wiring filters/navigation, not also owning a modal
