@@ -170,6 +170,7 @@ setInterval(() => {
 const DENY_TOP_LEVEL = new Set([
   'worker.js', 'server.js', 'package.json', 'package-lock.json', 'wrangler.toml',
   '.assetsignore', '.env', '.git', '.wrangler', 'node_modules', 'randomvn-dump.sql',
+  'refresh-vndb-db.mjs', 'schema.sql', 'vndb-dump-work',
 ]);
 
 app.use((req, res, next) => {
