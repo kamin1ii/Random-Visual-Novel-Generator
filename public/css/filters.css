@@ -16,7 +16,7 @@
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
 .chip{
   display:inline-flex;align-items:center;gap:6px;
-  font-size:12px;padding:4px 6px 4px 10px;border-radius:10px;
+  font-size:11px;padding:4px 6px 4px 10px;border-radius:10px;
 }
 .chip.include{background:rgba(91,155,213,.15);color:var(--accent);border:1px solid rgba(91,155,213,.3);}
 .chip.exclude{background:rgba(226,121,90,.13);color:var(--danger);border:1px solid rgba(226,121,90,.3);}
