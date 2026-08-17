@@ -12,14 +12,19 @@
 // file, no network database round trip).
 //
 // Setup (run once, on the VPS):
-//   1. apt install zstd sqlite3 (sqlite3 CLI not required by this script, useful for
-//      poking at the db by hand)
+//   1. apt install zstd sqlite3 rsync (sqlite3 CLI not required by this script, useful
+//      for poking at the db by hand)
 //   2. npm install (installs better-sqlite3, from vnpicker's package.json)
 //   3. sqlite3 /opt/rvng/data/randomvn.db < schema.sql   (once, before the first run)
 //
 // Then, any time you want to refresh:
 //   DB_PATH=/opt/rvng/data/randomvn.db node refresh-vndb-db.mjs
 // (DB_PATH defaults to /opt/rvng/data/randomvn.db if unset, matching server.js)
+//
+// main() below is the pipeline's table of contents, in the exact order it runs, every
+// step always runs and always in this order, it's one linear job rather than independent
+// pieces, so the actual parsing/loading logic is kept in named functions in this same
+// file rather than split across modules.
 
 import { execSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, createWriteStream, existsSync } from 'node:fs';
@@ -27,13 +32,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { finished } from 'node:stream/promises';
 import Database from 'better-sqlite3';
-import { S3Client, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DUMP_URL = 'https://dl.vndb.org/dump/vndb-db-latest.tar.zst';
 const WORK_DIR = path.join(__dirname, 'vndb-dump-work');
 const DB_PATH = process.env.DB_PATH || '/opt/rvng/data/randomvn.db';
+const COVERS_DIR = process.env.COVERS_DIR || '/opt/rvng/data/covers';
+const VNDB_RSYNC_COVERS = 'rsync://dl.vndb.org/vndb-img/cv/';
 
 function parseTSV(filePath, label){
   const raw = readFileSync(filePath, 'utf-8');
@@ -61,8 +67,8 @@ function unescapeTsvField(val){
     .replace(/\\\\/g, '\\');
 }
 
-// Turns "cv20339" into "cv/39/20339.jpg", matching the key format server.js/worker.js
-// already expect in R2 (folder is the image number's last two digits).
+// Turns "cv20339" into "cv/39/20339.jpg", matching both the local cover mirror's layout
+// and the key format server.js expects (folder is the image number's last two digits).
 function imageIdToPath(imageId){
   if(!imageId || !imageId.startsWith('cv')) return null;
   const num = imageId.slice(2);
@@ -109,113 +115,54 @@ async function downloadWithProgress(url, destPath){
   await finished(fileStream);
 }
 
-// Small hand-rolled concurrency pool, keeps a fixed number of workers in flight instead
-// of firing all 65k+ requests at once (would flood both VNDB's image host and this VPS's
-// own network) or doing them one at a time (would take hours).
-async function runWithConcurrency(items, limit, worker){
-  let index = 0;
-  let active = 0;
-  return new Promise((resolve) => {
-    function next(){
-      if(index >= items.length && active === 0){ resolve(); return; }
-      while(active < limit && index < items.length){
-        const item = items[index++];
-        active++;
-        worker(item).catch(() => {}).finally(() => {
-          active--;
-          next();
-        });
-      }
-    }
-    next();
-  });
+// Mirrors VNDB's own cover image rsync feed locally, this is the tool VNDB explicitly
+// documents for bulk/incremental syncing ("prefer incremental updates over redownloading
+// a full copy"), rsync's own diffing means running it again only transfers what actually changed
+// instead of tens of thousands of individual HTTP requests. --del removes local files
+// VNDB has since removed, keeping the mirror exact. server.js's /img/* route still has an
+// on demand fetch and cache fallback for anything this sync doesn't have yet (a VN VNDB
+// adds after this run), that's the safety net, not the primary path.
+function syncCoverImages(){
+  console.log('Syncing cover images from VNDB\'s rsync mirror...');
+  const target = path.join(COVERS_DIR, 'cv') + '/';
+  mkdirSync(target, { recursive: true });
+  execSync(`rsync -rt --del --info=progress2 ${VNDB_RSYNC_COVERS} "${target}"`, { stdio: 'inherit' });
+  // this runs as root over SSH, but the live server reads these as an unprivileged user
+  execSync(`chmod -R a+rX "${COVERS_DIR}"`);
+  console.log('  cover image sync complete.');
 }
 
-const VNDB_IMAGE_HOST = 'https://t.vndb.org';
-const PREWARM_CONCURRENCY = 20;
-
-// Proactively fills R2 with every cover this refresh knows about, checking first so a
-// re-run only downloads what's actually missing (most of the catalog won't have changed
-// since last time). Visitors then never hit the on-demand fetch-and-cache path in
-// server.js for anything already known at refresh time, that path still exists there
-// purely as a fallback (a VN VNDB adds after this run, or a download that failed here).
-async function prewarmCoverCache(imagePaths){
-  if(!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY){
-    console.warn('R2 credentials not set in the environment, skipping cover cache prewarm (server.js will still cache covers on demand as visitors request them).');
-    return;
-  }
-
-  const s3 = new S3Client({
-    region: 'auto',
-    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    },
-  });
-  const bucket = process.env.R2_BUCKET || 'rvng-covers';
-
-  let done = 0, alreadyCached = 0, downloaded = 0, failed = 0;
-  const total = imagePaths.length;
-
-  await runWithConcurrency(imagePaths, PREWARM_CONCURRENCY, async (key) => {
-    try{
-      await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
-      alreadyCached++; // already there, nothing to do
-    }catch(err){
-      if(err.name !== 'NotFound' && err.name !== 'NoSuchKey'){
-        failed++;
-        return;
-      }
-      try{
-        const upstream = await fetch(`${VNDB_IMAGE_HOST}/${key}`);
-        if(!upstream.ok){ failed++; return; }
-        const contentType = upstream.headers.get('content-type') || 'image/jpeg';
-        if(!contentType.startsWith('image/')){ failed++; return; }
-        const buffer = Buffer.from(await upstream.arrayBuffer());
-        await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: buffer, ContentType: contentType }));
-        downloaded++;
-      }catch(err2){
-        failed++;
-      }
-    }finally{
-      done++;
-      if(done % 2000 === 0 || done === total){
-        console.log(`  prewarm: ${done.toLocaleString()}/${total.toLocaleString()} (${alreadyCached.toLocaleString()} already cached, ${downloaded.toLocaleString()} newly downloaded, ${failed.toLocaleString()} failed)`);
-      }
-    }
-  });
-
-  console.log(`Cover cache prewarm done: ${alreadyCached.toLocaleString()} already cached, ${downloaded.toLocaleString()} newly downloaded, ${failed.toLocaleString()} failed (failures fall back to on-demand caching when a visitor requests them).`);
-}
-
-async function main(){
-  rmSync(WORK_DIR, { recursive: true, force: true });
-  mkdirSync(WORK_DIR, { recursive: true });
-
+// Either uses the local file given as argv[2], or downloads the latest dump fresh.
+async function resolveArchivePath(){
   const localFile = process.argv[2];
-  let archivePath;
-
   if(localFile){
     const resolvedPath = path.isAbsolute(localFile) ? localFile : path.join(process.cwd(), localFile);
     if(!existsSync(resolvedPath)){
       throw new Error(`File not found: ${resolvedPath}`);
     }
     console.log(`Using local file instead of downloading: ${resolvedPath}`);
-    archivePath = resolvedPath;
-  } else {
-    console.log('No local file given, downloading latest VNDB dump...');
-    archivePath = path.join(WORK_DIR, 'dump.tar.zst');
-    await downloadWithProgress(DUMP_URL, archivePath);
-    console.log(`Downloaded, saved to: ${archivePath}`);
+    return resolvedPath;
   }
 
+  console.log('No local file given, downloading latest VNDB dump...');
+  const archivePath = path.join(WORK_DIR, 'dump.tar.zst');
+  await downloadWithProgress(DUMP_URL, archivePath);
+  console.log(`Downloaded, saved to: ${archivePath}`);
+  return archivePath;
+}
+
+// Unpacks just the tables this site needs, returns the dump's own timestamp.
+function extractDumpTables(archivePath){
   console.log('Extracting needed tables...');
   execSync(`tar --zstd -xf "${archivePath}" -C "${WORK_DIR}" db/vn db/vn_titles db/tags_vn db/tags_parents db/images db/releases db/releases_vn db/releases_titles db/releases_platforms TIMESTAMP`, { stdio: 'inherit' });
 
   const dumpTimestamp = readFileSync(path.join(WORK_DIR, 'TIMESTAMP'), 'utf-8').trim();
   console.log(`  dump timestamp: ${dumpTimestamp}`);
+  return dumpTimestamp;
+}
 
+// image id -> the 0-2 explicit cover score, used below to fill in each VN's `sexual` field.
+function buildSexualByImageId(){
   console.log('Parsing images (for the explicit-cover flag)...');
   const imageRows = parseTSV(path.join(WORK_DIR, 'db/images'), 'images');
   // id, width, height, c_votecount, c_sexual_avg, c_sexual_stddev, c_violence_avg, c_violence_stddev, c_weight
@@ -224,7 +171,11 @@ async function main(){
     const [id, , , , c_sexual_avg] = r;
     if(c_sexual_avg !== null) sexualByImageId.set(id, parseInt(c_sexual_avg, 10) / 100); // raw dump stores *100 versus the live API's 0-2 scale
   }
+  return sexualByImageId;
+}
 
+// The base vn_id -> VN record map that every later step fills in further.
+function buildVnById(sexualByImageId){
   console.log('Parsing vn table...');
   const vnRows = parseTSV(path.join(WORK_DIR, 'db/vn'), 'vn');
   const vnById = new Map();
@@ -252,7 +203,12 @@ async function main(){
     });
   }
   console.log(`  ${vnById.size} Japanese-original VNs kept`);
+  return vnById;
+}
 
+// Fills in vn.title/alttitle in place, picks the official title in the VN's own original
+// language, falls back to id if nothing qualifies.
+function resolveVnTitles(vnById){
   console.log('Parsing vn_titles, resolving main titles...');
   const titleRows = parseTSV(path.join(WORK_DIR, 'db/vn_titles'), 'vn_titles');
   for(const r of titleRows){
@@ -265,7 +221,11 @@ async function main(){
   for(const vn of vnById.values()){
     if(!vn.title) vn.title = vn.alttitle || vn.id;
   }
+}
 
+// Aggregates thousands of individual per user tag votes down into one (vn, tag) -> vote/
+// spoiler summary, kept only if the community consensus average vote is positive.
+function aggregateTagVotes(vnById){
   console.log('Parsing and aggregating tags_vn...');
   const tagVoteRows = parseTSV(path.join(WORK_DIR, 'db/tags_vn'), 'tags_vn');
   const tagAgg = new Map();
@@ -281,7 +241,18 @@ async function main(){
     if(spoiler !== null){ agg.spoilerSum += parseInt(spoiler, 10); agg.spoilerCount++; }
     if(i > 0 && i % 500000 === 0) console.log(`  aggregated ${i.toLocaleString()}/${tagVoteRows.length.toLocaleString()}`);
   }
+  return tagAgg;
+}
 
+// Parses the tag hierarchy and expands the aggregated direct votes into the final
+// vn_tags list, propagating each tag up to all of its ancestors. VNDB's live tag search
+// also matches any ancestor of a directly applied tag, filtering for "Fantasy" matches a
+// VN only tagged with a more specific child like "Fictional Beings" too, it doesn't
+// require a direct vote on "Fantasy" itself. Without this, local results systematically
+// undercount the live API for any tag that has children, worse for broad parent tags.
+// Every ancestor gets an implicit entry alongside the direct one, deduped against direct
+// entries by keeping whichever spoiler level is least restrictive.
+function buildVnTagsWithHierarchy(tagAgg){
   console.log('Parsing tags_parents (tag hierarchy)...');
   const tagParentRows = parseTSV(path.join(WORK_DIR, 'db/tags_parents'), 'tags_parents');
   // id, parent, main
@@ -310,12 +281,6 @@ async function main(){
     return result;
   }
 
-  // VNDB's live tag search also matches any ancestor of a directly-applied tag, filtering
-  // for "Fantasy" matches a VN only tagged with a more specific child like "Fictional
-  // Beings" too, it doesn't require a direct vote on "Fantasy" itself. Without this, local
-  // results systematically undercount the live API for any tag that has children, worse
-  // for broad parent tags. Every ancestor gets an implicit entry alongside the direct one,
-  // deduped against direct entries by keeping whichever spoiler level is least restrictive.
   const finalByKey = new Map(); // "vid|bareTagId" -> spoiler
   for(const [key, agg] of tagAgg){
     if(agg.voteCount === 0) continue;
@@ -341,8 +306,13 @@ async function main(){
     vnTags.push({ vn_id, tag_id, spoiler });
   }
   console.log(`  ${vnTags.length} (vn, tag) pairs kept after aggregation (direct + inherited via tag hierarchy)`);
+  return vnTags;
+}
 
-  // --- Releases: derive release year and English-release-status flags per VN ---
+// Fills in released_year/languages/platforms/has_en_* on vnById in place, derived from
+// the releases tables (release year and English release status are release level facts
+// in VNDB's schema, not VN level, so they have to be rolled up here).
+function deriveReleaseFlags(vnById){
   console.log('Parsing releases...');
   const releaseRows = parseTSV(path.join(WORK_DIR, 'db/releases'), 'releases');
   // id, gtin, olang, released, voiced, reso_x, reso_y, minage, ani_*, has_ero, patch, freeware, uncensored, official, catalog, notes, engine
@@ -413,7 +383,11 @@ async function main(){
     }
   }
   console.log('  release-derived flags computed');
+}
 
+// Replaces the vn/vn_tags tables and the dump timestamp in one transaction, so a failed
+// run never leaves the live database half loaded.
+function loadDatabase(vnById, vnTags, dumpTimestamp){
   console.log(`Opening database: ${DB_PATH}`);
   const db = new Database(DB_PATH);
   db.pragma('journal_mode = WAL');
@@ -452,11 +426,27 @@ async function main(){
 
   loadAll();
   db.close();
+}
 
-  console.log('Prewarming R2 cover cache...');
-  const imagePaths = [...new Set(Array.from(vnById.values()).map(vn => vn.image_path).filter(Boolean))];
-  console.log(`  ${imagePaths.length.toLocaleString()} unique cover images to check`);
-  await prewarmCoverCache(imagePaths);
+async function main(){
+  rmSync(WORK_DIR, { recursive: true, force: true });
+  mkdirSync(WORK_DIR, { recursive: true });
+
+  const archivePath = await resolveArchivePath();
+  const dumpTimestamp = extractDumpTables(archivePath);
+
+  const sexualByImageId = buildSexualByImageId();
+  const vnById = buildVnById(sexualByImageId);
+  resolveVnTitles(vnById);
+
+  const tagAgg = aggregateTagVotes(vnById);
+  const vnTags = buildVnTagsWithHierarchy(tagAgg);
+
+  deriveReleaseFlags(vnById);
+
+  loadDatabase(vnById, vnTags, dumpTimestamp);
+
+  syncCoverImages();
 
   console.log('Done. Cleaning up temp files...');
   rmSync(WORK_DIR, { recursive: true, force: true });

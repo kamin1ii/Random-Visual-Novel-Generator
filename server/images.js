@@ -1,40 +1,36 @@
-// The /img/* route: proxies and caches VNDB cover art through R2. Three layers before
-// anything reaches R2 or VNDB: the key must match VNDB's real cover-path shape, it must
-// belong to a VN actually in the local database (VNDB hosts covers for its whole catalog,
-// not just this site's filtered dataset), and cache-miss requests are rate-limited per IP.
+// The /img/* route: serves VN cover art from a local mirror of VNDB's cover images
+// (synced by db/refresh-vndb-db.mjs from VNDB's own rsync feed), falling back to an
+// on-demand fetch for anything not in the mirror yet (a VN added after the last refresh),
+// caching that fetch to disk too so it's only ever fetched once. Three checks before
+// anything is served: the key must match VNDB's real cover-path shape, it must belong to
+// a VN actually in the local database (VNDB's mirror covers its whole catalog, not just
+// this site's filtered dataset), and cache-miss fallback requests are rate-limited per IP.
 
 import express from 'express';
-import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import fs from 'node:fs';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
 import { db } from './db.js';
 import { getClientIp, imageMissAllowed } from './rateLimit.js';
 
-const R2_BUCKET = process.env.R2_BUCKET || 'rvng-covers';
+const COVERS_DIR = process.env.COVERS_DIR || '/opt/rvng/data/covers';
 const VNDB_IMAGE_HOST = 'https://t.vndb.org'; // confirmed via testing, not documented anywhere official
 
-// Matches refresh-vndb-db.mjs's imageIdToPath() output exactly, e.g. "cv/39/20339.jpg".
-// Without this, /img/* would happily fetch and cache-write whatever path a caller asks
-// for, an unauthenticated, unbounded way to make this server copy arbitrary content from
-// VNDB into R2 under a key of the caller's choosing.
+// Matches refresh-vndb-db.mjs's imageIdToPath() output exactly, e.g. "cv/39/20339.jpg",
+// and VNDB's own rsync mirror layout. Without this, /img/* would happily fetch and cache
+// whatever path a caller asks for, an unauthenticated, unbounded way to make this server
+// copy arbitrary content from VNDB under a key of the caller's choosing.
 const COVER_KEY_PATTERN = /^cv\/\d{2}\/\d+\.jpg$/;
 
-// VNDB hosts cover art for its entire catalog, not just the ~65k VNs in this site's own
+// VNDB's image mirror covers its entire catalog, not just the ~65k VNs in this site's own
 // filtered dataset, so a key merely matching the right shape isn't enough on its own, it
 // still lets someone cache and serve whatever real VNDB image they want under this domain.
 // This confirms the key belongs to a VN actually present in the local database before
-// anything gets fetched or cached.
+// anything gets read, fetched, or cached.
 const imagePathExistsStmt = db.prepare('SELECT 1 FROM vn WHERE image_path = ? LIMIT 1');
 function isKnownCoverKey(key){
   return !!imagePathExistsStmt.get(key);
 }
-
-const s3 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-  },
-});
 
 export const imagesRouter = express.Router();
 
@@ -44,17 +40,19 @@ imagesRouter.get('/img/*', async (req, res) => {
     return res.status(404).send('Unknown image path');
   }
 
+  const localPath = path.join(COVERS_DIR, key);
+
   try{
-    const cached = await s3.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    const buffer = await fsp.readFile(localPath);
     res.set({
-      'Content-Type': cached.ContentType || 'image/jpeg',
+      'Content-Type': 'image/jpeg',
       'Cache-Control': 'public, max-age=31536000, immutable',
       'X-Cache': 'HIT',
     });
-    return cached.Body.pipe(res);
+    return res.send(buffer);
   }catch(err){
-    if(err.name !== 'NoSuchKey'){
-      console.error('R2 get failed, falling back to upstream:', err.name || err);
+    if(err.code !== 'ENOENT'){
+      console.error('Local cover read failed, falling back to upstream:', err.code || err);
     }
   }
 
@@ -62,7 +60,8 @@ imagesRouter.get('/img/*', async (req, res) => {
     return res.status(429).send('Too many uncached image requests, slow down.');
   }
 
-  // the one request per unique image that has to actually reach VNDB
+  // the one request per unique image that has to actually reach VNDB, for anything the
+  // last refresh's mirror sync didn't already have
   let upstream;
   try{
     upstream = await fetch(`${VNDB_IMAGE_HOST}/${key}`);
@@ -82,9 +81,10 @@ imagesRouter.get('/img/*', async (req, res) => {
   }
   const buffer = Buffer.from(await upstream.arrayBuffer());
 
-  // doesn't block the response on the R2 write, cache just isn't warm for the next request yet
-  s3.send(new PutObjectCommand({ Bucket: R2_BUCKET, Key: key, Body: buffer, ContentType: contentType }))
-    .catch(err => console.error('R2 put failed:', err));
+  // doesn't block the response on the disk write, cache just isn't warm for the next request yet
+  fsp.mkdir(path.dirname(localPath), { recursive: true })
+    .then(() => fsp.writeFile(localPath, buffer))
+    .catch(err => console.error('Local cover cache write failed:', err));
 
   res.set({
     'Content-Type': contentType,
