@@ -252,7 +252,14 @@ function buildVnById(sexualByImageId){
       olang,
       votecount: parseInt(votecount, 10) || 0,
       rating: c_rating ? parseInt(c_rating, 10) / 10 : null,
-      length: lengthCategory ? parseInt(lengthCategory, 10) : null, // the 1-5 category scale, was previously reading the wrong column entirely
+      // The 1-5 category scale. VNDB's dump represents "no length set" as the literal
+      // string "0" here (confirmed against the live API, which reports null for the same
+      // VN), not "\N" like every other unset numeric field in this dump, "0" is still
+      // truthy in JS so the ternary let it through as a real value. length IN (1,2,3,4,5)
+      // then silently excluded every one of these VNs even with every length checkbox on,
+      // since 0 isn't among them and SQL's IN never matches a literal 0 against that list
+      // (it would if these were genuinely NULL, but they weren't).
+      length: lengthCategory && lengthCategory !== '0' ? parseInt(lengthCategory, 10) : null,
       length_minutes: c_length ? parseInt(c_length, 10) : null, // real minutes value, was previously hardcoded to NULL
       devstatus: devstatus ? parseInt(devstatus, 10) : null,
       description: stripFormatting(description),

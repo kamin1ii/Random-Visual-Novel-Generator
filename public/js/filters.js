@@ -82,7 +82,11 @@ export function buildFilters(){
     }
   }
 
-  if(state.lengths.size){
+  // All 5 checked means the same thing as none checked ("don't care"), matches the D1
+  // path's own reasoning: a VN with no length category set never matches any of the 5
+  // clauses below, so filtering on all 5 anyway would still exclude it, even though
+  // checking every box reads as "show me everything" to whoever's looking at the form.
+  if(state.lengths.size && state.lengths.size < 5){
     const lenClauses = Array.from(state.lengths).map(l => ["length","=",parseInt(l,10)]);
     clauses.push(lenClauses.length > 1 ? ["or", ...lenClauses] : lenClauses[0]);
   }
