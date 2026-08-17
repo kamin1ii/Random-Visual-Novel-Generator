@@ -1,6 +1,6 @@
 # Random VN List Generator
 
-A random visual novel generator and browser built on data from [VNDB](https://vndb.org). Set filters, generate a randomized list of matching titles, and browse the results one at a time with cover art, stats, tags, and a synopsis.
+A random visual novel list generator and browser built on data from [VNDB](https://vndb.org). Set filters, generate a randomized list of matching titles, and browse the results one at a time with cover art, stats, tags, and a synopsis.
 
 **Site:** https://randomvn.org
 
