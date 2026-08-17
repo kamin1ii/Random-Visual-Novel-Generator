@@ -198,6 +198,10 @@
       <input type="checkbox" id="revealPrefCheckbox">
       <label for="revealPrefCheckbox">Ask before revealing explicit images</label>
     </div>
+    <div class="check-row reveal-pref">
+      <input type="checkbox" id="neverBlurCheckbox">
+      <label for="neverBlurCheckbox">Never blur explicit images</label>
+    </div>
 
     <p class="footer-credit">Data via <a href="https://vndb.org" target="_blank" rel="noopener">vndb.org</a>. <span id="dbLastUpdated"></span></p>
   </div>
@@ -214,6 +218,17 @@
     <div class="modal-actions">
       <button type="button" class="modal-btn modal-btn-cancel" id="revealCancel">Cancel</button>
       <button type="button" class="modal-btn modal-btn-confirm" id="revealConfirm">Reveal</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="neverBlurModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="neverBlurModalTitle">
+    <p class="modal-title" id="neverBlurModalTitle">Turn off image blurring</p>
+    <p class="modal-body">Explicit covers will show unblurred immediately, with no warning, for every title. You can turn this back on anytime.</p>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn modal-btn-cancel" id="neverBlurCancel">Cancel</button>
+      <button type="button" class="modal-btn modal-btn-confirm" id="neverBlurConfirm">Turn off blurring</button>
     </div>
   </div>
 </div>
@@ -248,6 +263,6 @@
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=56"></script>
+<script type="module" src="js/main.js?v=57"></script>
 </body>
 </html>
