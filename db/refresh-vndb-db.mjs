@@ -278,20 +278,34 @@ function buildDefaultSpoilByTagId(){
 }
 
 // Aggregates thousands of individual per-user tag votes down into one (vn, tag) -> vote/
-// spoiler summary, kept only if the community consensus average vote is positive.
+// spoiler summary. Matches VNDB's own tag_vn_calc() (code.blicky.net/yorhel/vndb,
+// sql/func.sql) on two points that weren't obvious from behavior alone:
+//   - Only "ignore" excludes a vote from the aggregate. "lie" doesn't: VNDB's query only
+//     filters on "NOT tv.ignore", the lie flag is carried through into an aggregate boolean
+//     column of its own (majority-flagged-as-lie), it never removes a voter's vote/spoiler
+//     contribution. This script was excluding lie-flagged votes entirely, which could both
+//     wrongly drop a tag (denominator shrinks, changing the sign-sum below) and wrongly
+//     skew its spoiler level.
+//   - Kept only if signSum > 0 (see buildVnTagsWithHierarchy), not average vote > 0. VNDB's
+//     real inclusion test is "HAVING SUM(sign(tv.vote)) > 0", a net count of positive vs
+//     negative voters, not the magnitude-weighted mean this script was using. A tag with a
+//     few strongly negative votes and many mildly positive ones can have avg <= 0 while
+//     still having more people vote it up than down, VNDB keeps that tag, this script was
+//     dropping it. Found via a real case: a title clearly tagged "Nukige" on VNDB's live
+//     site (visible, spoiler 0) had zero rows for that tag locally at all.
 function aggregateTagVotes(vnById){
   console.log('Parsing and aggregating tags_vn...');
   const tagVoteRows = parseTSV(path.join(WORK_DIR, 'db/tags_vn'), 'tags_vn');
   const tagAgg = new Map();
   for(let i = 0; i < tagVoteRows.length; i++){
-    const [, tag, vid, , vote, spoiler, ignore, lie] = tagVoteRows[i];
+    const [, tag, vid, , vote, spoiler, ignore] = tagVoteRows[i];
     if(!vnById.has(vid)) continue;
-    if(ignore === 't' || lie === 't') continue;
+    if(ignore === 't') continue;
     const key = `${vid}|${tag}`;
-    if(!tagAgg.has(key)) tagAgg.set(key, { voteSum: 0, voteCount: 0, spoilerSum: 0, spoilerCount: 0 });
+    if(!tagAgg.has(key)) tagAgg.set(key, { signSum: 0, voteCount: 0, spoilerSum: 0, spoilerCount: 0 });
     const agg = tagAgg.get(key);
     const v = parseFloat(vote);
-    if(!isNaN(v)){ agg.voteSum += v; agg.voteCount++; }
+    if(!isNaN(v)){ agg.signSum += Math.sign(v); agg.voteCount++; }
     if(spoiler !== null){ agg.spoilerSum += parseInt(spoiler, 10); agg.spoilerCount++; }
     if(i > 0 && i % 500000 === 0) console.log(`  aggregated ${i.toLocaleString()}/${tagVoteRows.length.toLocaleString()}`);
   }
@@ -346,13 +360,12 @@ function buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId){
   const finalByKey = new Map(); // "vid|bareTagId" -> spoiler
   for(const [key, agg] of tagAgg){
     if(agg.voteCount === 0) continue;
-    const avgVote = agg.voteSum / agg.voteCount;
-    if(avgVote <= 0) continue;
+    if(agg.signSum <= 0) continue; // VNDB's real threshold, see the comment on aggregateTagVotes
     const [vid, tag] = key.split('|');
     // Matches VNDB's own tag_vn_calc() SQL function verbatim (code.blicky.net/yorhel/vndb,
     // sql/func.sql): CASE WHEN count(spoiler)=0 THEN min(defaultspoil) WHEN avg(spoiler)>1.3
     // THEN 2 WHEN avg(spoiler)>0.4 THEN 1 ELSE 0 END. Confirmed against a real case: a tag
-    // can have votes on it (voteCount>0, it clears the avgVote<=0 skip above) while nobody
+    // can have votes on it (voteCount>0, it clears the signSum<=0 skip above) while nobody
     // has ever set an explicit spoiler rating on it for that VN (spoilerCount===0, spoiler
     // is optional per vote), in which case VNDB doesn't default to "not a spoiler", it falls
     // back to the tag's own defaultspoil, e.g. "Completely Unavoidable Heroine Death" is
