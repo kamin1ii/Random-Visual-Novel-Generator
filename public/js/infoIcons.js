@@ -1,16 +1,26 @@
 // Compact stand-in for a subnote paragraph: a small "ⓘ" that shows its description in a
-// tooltip on click/tap instead of the description always taking up its own line. Click
-// rather than hover as the trigger, deliberately, hover doesn't exist on a touchscreen at
-// all, so a hover-only tooltip (the previous approach, using the native title attribute)
-// never had any way to be triggered there in the first place. Click works identically for
-// a mouse click and a touch tap, one code path covers both.
+// tooltip on hover (mouse) or click/tap (touch, and mouse too) instead of the description
+// always taking up its own line.
 //
 // position:fixed and JS tracked, the same technique tagPicker.js's .suggest dropdown
 // already uses, since these icons sit inside .sidebar-fields' scrolling box on desktop
 // and a plain CSS positioned tooltip would risk being clipped by that scroll boundary
-// depending on where the icon happens to be scrolled to.
+// depending on where the icon happens to be scrolled to. That alone isn't enough though:
+// .sidebar is position:sticky, and sticky unconditionally creates its own stacking
+// context regardless of z-index, so a tooltip left nested inside it stays trapped
+// competing for z-index only within that context, capped by wherever .sidebar itself
+// falls in paint order against .main-col, no z-index value can win that fight from
+// inside. Each tooltip gets moved to be a direct child of <body> once, up front, escaping
+// that ancestor stacking context entirely rather than trying to win a z-index fight from within it.
 export function initInfoIcons(){
   const icons = document.querySelectorAll('.info-icon');
+  const tooltips = new Map(); // icon -> its tooltip, captured before reparenting moves it out from under the icon
+
+  icons.forEach(icon => {
+    const tooltip = icon.querySelector('.info-tooltip');
+    tooltips.set(icon, tooltip);
+    document.body.appendChild(tooltip);
+  });
 
   function position(icon, tooltip){
     const rect = icon.getBoundingClientRect();
@@ -20,27 +30,34 @@ export function initInfoIcons(){
   }
 
   function open(icon){
-    icons.forEach(close);
-    const tooltip = icon.querySelector('.info-tooltip');
+    icons.forEach(i => { if(i !== icon) close(i); });
+    const tooltip = tooltips.get(icon);
     tooltip.classList.add('open'); // added before measuring, offsetWidth is 0 while display:none
     position(icon, tooltip);
   }
 
   function close(icon){
-    icon.querySelector('.info-tooltip').classList.remove('open');
-  }
-
-  function isOpen(icon){
-    return icon.querySelector('.info-tooltip').classList.contains('open');
+    tooltips.get(icon).classList.remove('open');
   }
 
   icons.forEach(icon => {
+    icon.addEventListener('mouseenter', () => open(icon));
+    icon.addEventListener('mouseleave', () => close(icon));
+    // Always opens rather than toggling. A click on a tabindex=0 element also focuses it,
+    // and focus used to independently call open() too, so a single real click fired focus
+    // (open) then click (which saw it already open and closed it again), needing a second
+    // click to actually see anything. Keyboard activation moved to its own keydown handler
+    // below instead, so open() only ever has one path in per input type, nothing left to race.
     icon.addEventListener('click', (e) => {
       e.stopPropagation();
-      if(isOpen(icon)) close(icon);
-      else open(icon);
+      open(icon);
     });
-    icon.addEventListener('focus', () => open(icon));
+    icon.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        open(icon);
+      }
+    });
     icon.addEventListener('blur', () => close(icon));
   });
 
@@ -54,10 +71,10 @@ export function initInfoIcons(){
   // doesn't bubble to window normally. rAF-throttled since scroll can fire faster than repaints.
   let scrollRaf = null;
   document.addEventListener('scroll', () => {
-    const openIcon = Array.from(icons).find(isOpen);
+    const openIcon = Array.from(icons).find(i => tooltips.get(i).classList.contains('open'));
     if(!openIcon || scrollRaf) return;
     scrollRaf = requestAnimationFrame(() => {
-      position(openIcon, openIcon.querySelector('.info-tooltip'));
+      position(openIcon, tooltips.get(openIcon));
       scrollRaf = null;
     });
   }, true);

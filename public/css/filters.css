@@ -1,4 +1,4 @@
-.slider-row{display:flex;align-items:center;gap:6px;}
+.slider-row{display:flex;align-items:center;gap:2px;}
 .slider-val{
   font-family:'IBM Plex Mono',monospace;
   font-size:13px;color:var(--gold);min-width:38px;text-align:right;
