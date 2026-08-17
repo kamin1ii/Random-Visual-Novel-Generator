@@ -21,6 +21,8 @@ export const els = {
   excludeChips: document.getElementById('excludeChips'),
   hideSpoilerTagMatches: document.getElementById('hideSpoilerTagMatches'),
   listSize: document.getElementById('listSize'),
+  useVndbApi: document.getElementById('useVndbApi'),
+  dbLastUpdated: document.getElementById('dbLastUpdated'),
   generateBtn: document.getElementById('generateBtn'),
   resetBtn: document.getElementById('resetBtn'),
   statusLine: document.getElementById('statusLine'),

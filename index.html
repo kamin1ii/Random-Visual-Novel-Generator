@@ -142,6 +142,14 @@
       </select>
       <p class="subnote">200 to 300 titles may take a few seconds to build.</p>
     </div>
+
+    <div class="field">
+      <div class="check-row">
+        <input type="checkbox" id="useVndbApi">
+        <label for="useVndbApi">Use VNDB's live API instead</label>
+      </div>
+      <p class="subnote">Not truly random. VNDB has no random sample endpoint, so this scatters across a few pages.</p>
+    </div>
     </div>
 
     <div class="sidebar-actions">
@@ -190,7 +198,7 @@
       <label for="revealPrefCheckbox">Ask before revealing explicit images</label>
     </div>
 
-    <p class="footer-credit">Data via <a href="https://vndb.org" target="_blank" rel="noopener">vndb.org</a>.</p>
+    <p class="footer-credit">Data via <a href="https://vndb.org" target="_blank" rel="noopener">vndb.org</a>. <span id="dbLastUpdated"></span></p>
   </div>
 </div>
 
@@ -222,7 +230,7 @@
 <div class="modal-backdrop" id="rateLimitModal">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rateLimitTitle">
     <p class="modal-title" id="rateLimitTitle">Too many requests</p>
-    <p class="modal-body">You're generating lists too quickly and have hit VNDB's rate limit. Please slow down and wait a minute or two before trying again.</p>
+    <p class="modal-body">You're generating lists too quickly and have hit the rate limit. Please slow down and wait a minute or two before trying again.</p>
     <div class="modal-actions">
       <button type="button" class="modal-btn modal-btn-confirm" id="rateLimitOk">OK</button>
     </div>

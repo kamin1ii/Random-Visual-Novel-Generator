@@ -1,7 +1,7 @@
 import { els } from './dom.js?v=53';
 import { state } from './state.js?v=53';
-import { runQuery, fetchRandomPool } from './api.js?v=53';
-import { buildFilters, describeFilters } from './filters.js?v=53';
+import { runQuery, fetchRandomPool, runQueryD1, fetchDbInfo } from './api.js?v=53';
+import { buildFilters, describeFilters, gatherFilterState } from './filters.js?v=53';
 import { resetFilterUI } from './filterControls.js?v=53';
 import { makeTagPicker, renderChips } from './tagPicker.js?v=53';
 import { showCurrent, setStatus, renderActiveFilters, resetPreloadDirection, markWentBackward } from './render.js?v=53';
@@ -50,11 +50,16 @@ async function generateList(){
     return;
   }
   els.generateBtn.disabled = true;
-  setStatus('Searching VNDB…');
+  const useVndb = els.useVndbApi.checked;
+  setStatus(useVndb ? 'Searching VNDB…' : 'Searching…');
   try{
-    const filters = buildFilters();
     const listSize = parseInt(els.listSize.value, 10);
-    const { count, results } = await runQuery(filters, listSize);
+    const { count, results, debug } = useVndb
+      ? await runQuery(buildFilters(), listSize)
+      : await runQueryD1(gatherFilterState(), listSize);
+    if(debug){
+      console.log(`server generate: cache ${debug.cacheHit ? 'HIT' : 'MISS'} on count, ${debug.queryMs}ms query time`);
+    }
     if(!count){
       setStatus('No titles match those filters. Try loosening them.');
       showNoResultsModal('No titles match those filters. Try loosening them.');
@@ -76,9 +81,9 @@ async function generateList(){
   }catch(err){
     if(err.status === 429){
       startRateLimitCooldown();
-      setStatus('VNDB rate limit reached. Wait a minute or two before trying again.');
+      setStatus('Rate limit reached. Wait a minute or two before trying again.');
     } else {
-      setStatus(err.message || 'Something went wrong reaching VNDB.');
+      setStatus(err.message || 'Something went wrong.');
     }
   }finally{
     els.generateBtn.disabled = false;
@@ -87,11 +92,18 @@ async function generateList(){
 
 // runs on page load, before anyone's touched a filter
 async function loadInitialPick(){
+  const useVndb = els.useVndbApi.checked;
   try{
-    // tag 214 = Nukige, excluded server-side so this doesn't need a pool to filter
-    // locally, one candidate is enough since VNDB already guarantees it isn't nukige
-    const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"], ["tag","!=",[214,2,0]]];
-    const { results } = await fetchRandomPool(filters, 1);
+    let results;
+    if(useVndb){
+      // tag 214 = Nukige, excluded server-side so this doesn't need a pool to filter
+      // locally, one candidate is enough since VNDB already guarantees it isn't nukige
+      const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"], ["tag","!=",[214,2,0]]];
+      ({ results } = await fetchRandomPool(filters, 1));
+    } else {
+      const filterState = { minVotes: 10, originalJapaneseOnly: true, excludeTags: [{ id: 214 }], hideSpoilerTagMatches: true };
+      ({ results } = await runQueryD1(filterState, 1));
+    }
     if(results.length){
       state.list = [results[0]];
       state.index = 0;
@@ -104,10 +116,10 @@ async function loadInitialPick(){
   }catch(err){
     if(err.status === 429){
       startRateLimitCooldown();
-      setStatus('VNDB rate limit reached. Wait a minute or two, then generate a list.');
+      setStatus('Please wait a minute or two before generating another list.');
       els.titleMain.textContent = 'Rate limited';
       els.titleAlt.textContent = '';
-      els.synopsis.textContent = 'VNDB\u2019s rate limit was reached while loading a starting pick. This isn\u2019t a missing cover, nothing was fetched yet, wait a minute or two and generate a list instead.';
+      els.synopsis.textContent = 'The rate limit was reached while loading a starting pick. This isn\u2019t a missing cover. Nothing was fetched yet. Please wait a minute or two before generating another list.';
     } else {
       setStatus('Set your filters and generate a list to begin.');
     }
@@ -171,3 +183,14 @@ els.resetBtn.addEventListener('click', () => {
 });
 
 loadInitialPick();
+
+fetchDbInfo().then(info => {
+  if(info.dumpTimestamp){
+    // stored value already carries its own UTC offset (e.g. "2026-08-16 08:00:10+00"),
+    // strip it rather than blindly appending 'Z', which produced an invalid double-suffix
+    // string ("...+00Z") that some engines silently parse as Invalid Date
+    const iso = info.dumpTimestamp.replace(' ', 'T').replace(/[+-]\d{2}(:?\d{2})?$/, '') + 'Z';
+    const d = new Date(iso);
+    els.dbLastUpdated.textContent = 'Database dump last updated ' + d.toLocaleDateString() + '.';
+  }
+});
