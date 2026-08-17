@@ -283,7 +283,7 @@ async function handleGenerate(request, env, ctx){
     return jsonResponse({ error: 'Invalid request body' }, 400);
   }
 
-  const listSize = Math.min(500, Math.max(1, parseInt(body.listSize, 10) || 50));
+  const listSize = Math.min(300, Math.max(1, parseInt(body.listSize, 10) || 50));
 
   let whereClause, params;
   try{

@@ -111,7 +111,7 @@ function buildWhereClause(filters){
 
 generateRouter.post('/api/generate', rateLimitMiddleware, express.json(), async (req, res) => {
   const body = req.body || {};
-  const listSize = Math.min(500, Math.max(1, parseInt(body.listSize, 10) || 50));
+  const listSize = Math.min(300, Math.max(1, parseInt(body.listSize, 10) || 50));
 
   let whereClause, params;
   try{
