@@ -127,8 +127,11 @@ function syncCoverImages(){
   const target = path.join(COVERS_DIR, 'cv') + '/';
   mkdirSync(target, { recursive: true });
   execSync(`rsync -rt --del --info=progress2 ${VNDB_RSYNC_COVERS} "${target}"`, { stdio: 'inherit' });
-  // this runs as root over SSH, but the live server reads these as an unprivileged user
-  execSync(`chmod -R a+rX "${COVERS_DIR}"`);
+  // This runs as root over SSH, but the live server runs as the unprivileged rvng user and
+  // needs write access here too, not just read, it's also where /img/*'s on-demand
+  // fetch-and-cache fallback writes newly-fetched covers. chown rather than a world-writable
+  // chmod, so only the actual app user gets write access, not literally everyone.
+  execSync(`chown -R rvng:rvng "${COVERS_DIR}"`);
   console.log('  cover image sync complete.');
 }
 

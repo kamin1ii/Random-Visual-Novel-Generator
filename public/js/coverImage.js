@@ -2,15 +2,22 @@ import { els } from './dom.js?v=53';
 import { SENSITIVE_THRESHOLD } from './constants.js?v=53';
 
 // Routes through our own /img/<path> proxy instead of VNDB directly. The proxy caches
-// each image in R2 on first request, so VNDB sees one request per unique cover total,
+// each image to disk on first request, so VNDB sees one request per unique cover total,
 // not one per visitor. Absolute URL with the canonical domain hardcoded explicitly,
 // rather than a relative path, closes off any chance of the browser resolving it
 // against www.randomvn.org and needing an extra redirect hop before landing on the
 // correct domain, regardless of what causes that resolution to happen.
+//
+// vnId is passed through as a query param purely so the server can log a real title on a
+// cache miss, it has no effect on which file gets served, the path alone still determines
+// that. Passed separately from the path (rather than looked up server-side from it)
+// because the path alone isn't a reliable way to find the VN, that's exactly the case on
+// a stale-cover miss, where no row in the local database has this path at all yet.
 const SITE_ORIGIN = 'https://randomvn.org';
-function proxiedImageUrl(vndbUrl){
+function proxiedImageUrl(vndbUrl, vnId){
   const path = new URL(vndbUrl).pathname.replace(/^\/+/, '');
-  return SITE_ORIGIN + '/img/' + path;
+  const vnParam = vnId ? '?vn=' + encodeURIComponent(vnId) : '';
+  return SITE_ORIGIN + '/img/' + path + vnParam;
 }
 
 // Preloaded Image() objects for covers the person hasn't reached yet, capped so a long
@@ -31,7 +38,7 @@ function preloadImages(vns){
     if(preloadCache.has(vn.id)) return;
     const img = new Image();
     img.fetchPriority = 'low'; // don't compete with whatever's actually on screen right now
-    img.src = proxiedImageUrl(vn.image.url);
+    img.src = proxiedImageUrl(vn.image.url, vn.id);
     rememberPreload(vn.id, img);
   });
 }
@@ -172,7 +179,7 @@ export function showCover(vn, isRetry){
       if(myToken !== renderToken) return;
       showLoadFailure();
     }, IMAGE_LOAD_TIMEOUT_MS);
-    els.cover.src = proxiedImageUrl(vn.image.url);
+    els.cover.src = proxiedImageUrl(vn.image.url, vn.id);
   }
 
   if(alreadyCached){

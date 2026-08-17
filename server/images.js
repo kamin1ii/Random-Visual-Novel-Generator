@@ -19,7 +19,14 @@ import express from 'express';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
+import { db } from './db.js';
 import { getClientIp, imageMissAllowed } from './rateLimit.js';
+
+// Purely for the console log below, has no effect on what gets served. The image path
+// alone isn't a reliable way to find the VN on a miss, that's exactly the case when the
+// miss is caused by our database being stale, so the frontend passes the VN id it already
+// has instead of this trying to reverse-lookup a possibly-stale image_path.
+const titleByIdStmt = db.prepare('SELECT title FROM vn WHERE id = ?');
 
 const COVERS_DIR = process.env.COVERS_DIR || '/opt/rvng/data/covers';
 const VNDB_IMAGE_HOST = 'https://t.vndb.org'; // confirmed via testing, not documented anywhere official
@@ -59,6 +66,11 @@ imagesRouter.get('/img/*', async (req, res) => {
     return res.status(429).send('Too many uncached image requests, slow down.');
   }
 
+  const vnId = typeof req.query.vn === 'string' ? req.query.vn : null;
+  const vnTitle = vnId ? titleByIdStmt.get(vnId)?.title : null;
+  const label = vnTitle ? `${vnTitle} (${vnId})` : vnId ? vnId : key;
+  console.log(`cover missing locally: ${label}, fetching from VNDB...`);
+
   // the one request per unique image that has to actually reach VNDB, for anything the
   // last refresh's mirror sync didn't already have
   let upstream;
@@ -83,6 +95,7 @@ imagesRouter.get('/img/*', async (req, res) => {
   // doesn't block the response on the disk write, cache just isn't warm for the next request yet
   fsp.mkdir(path.dirname(localPath), { recursive: true })
     .then(() => fsp.writeFile(localPath, buffer))
+    .then(() => console.log(`cover cached: ${label}`))
     .catch(err => console.error('Local cover cache write failed:', err));
 
   res.set({
