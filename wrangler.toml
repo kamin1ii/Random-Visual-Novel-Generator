@@ -1,0 +1,34 @@
+name = "random-visual-novel-generator"
+main = "worker.js"
+compatibility_date = "2026-08-14"
+
+# Serves the static site (index.html, css/, js/) from the repo root, the same files
+# GitHub Pages serves. Files listed in .assetsignore (worker.js, this config, etc.)
+# are excluded from being served as public assets.
+[assets]
+directory = "./"
+binding = "ASSETS"
+
+# The image cache bucket created in the R2 dashboard.
+[[r2_buckets]]
+binding = "COVERS_BUCKET"
+bucket_name = "rvng-covers"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+
+# VN + tag database imported from VNDB's own dump, refreshed via refresh-vndb-db.mjs
+[[d1_databases]]
+binding = "VNDB_DB"
+database_name = "randomvn-db"
+database_id = "690aa2fc-340b-4854-bf0d-14cbe1ddee47"

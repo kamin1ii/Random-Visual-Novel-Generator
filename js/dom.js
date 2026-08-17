@@ -19,7 +19,10 @@ export const els = {
   excludeSuggest: document.getElementById('excludeSuggest'),
   excludeStatus: document.getElementById('excludeStatus'),
   excludeChips: document.getElementById('excludeChips'),
+  hideSpoilerTagMatches: document.getElementById('hideSpoilerTagMatches'),
   listSize: document.getElementById('listSize'),
+  useVndbApi: document.getElementById('useVndbApi'),
+  dbLastUpdated: document.getElementById('dbLastUpdated'),
   generateBtn: document.getElementById('generateBtn'),
   resetBtn: document.getElementById('resetBtn'),
   statusLine: document.getElementById('statusLine'),
@@ -37,7 +40,7 @@ export const els = {
   titleMain: document.getElementById('titleMain'),
   titleAlt: document.getElementById('titleAlt'),
   tagRow: document.getElementById('tagRow'),
-  dialogue: document.getElementById('dialogue'),
+  synopsis: document.getElementById('synopsis'),
   vndbLink: document.getElementById('vndbLink'),
   includeModeToggle: document.getElementById('includeModeToggle'),
   excludeModeToggle: document.getElementById('excludeModeToggle'),
@@ -48,5 +51,7 @@ export const els = {
   revealPrefCheckbox: document.getElementById('revealPrefCheckbox'),
   noResultsModal: document.getElementById('noResultsModal'),
   noResultsBody: document.getElementById('noResultsBody'),
-  noResultsOk: document.getElementById('noResultsOk')
+  noResultsOk: document.getElementById('noResultsOk'),
+  rateLimitModal: document.getElementById('rateLimitModal'),
+  rateLimitOk: document.getElementById('rateLimitOk')
 };

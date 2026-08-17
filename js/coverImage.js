@@ -1,123 +1,185 @@
-import { els } from './dom.js?v=19';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=19';
+import { els } from './dom.js?v=53';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=53';
 
-// Caches Image() objects for covers the person hasn't reached yet, so navigating there
-// later is instant instead of waiting on a fresh download. Capped in size so a long
-// browsing session doesn't quietly build up unbounded memory.
+// Routes through our own /img/<path> proxy instead of VNDB directly. The proxy caches
+// each image in R2 on first request, so VNDB sees one request per unique cover total,
+// not one per visitor. Absolute URL with the canonical domain hardcoded explicitly,
+// rather than a relative path, closes off any chance of the browser resolving it
+// against www.randomvn.org and needing an extra redirect hop before landing on the
+// correct domain, regardless of what causes that resolution to happen.
+const SITE_ORIGIN = 'https://randomvn.org';
+function proxiedImageUrl(vndbUrl){
+  const path = new URL(vndbUrl).pathname.replace(/^\/+/, '');
+  return SITE_ORIGIN + '/img/' + path;
+}
+
+// Preloaded Image() objects for covers the person hasn't reached yet, capped so a long
+// session doesn't build up unbounded memory.
 const preloadCache = new Map();
 const MAX_PRELOAD_CACHE = 150;
 
 function rememberPreload(id, img){
   preloadCache.set(id, img);
   if(preloadCache.size > MAX_PRELOAD_CACHE){
-    preloadCache.delete(preloadCache.keys().next().value); // Map preserves insertion order, oldest is first
+    preloadCache.delete(preloadCache.keys().next().value); // Map preserves insertion order
   }
 }
 
-// Low fetch priority so the browser favors whatever image the person is actually
-// looking at right now if bandwidth is limited.
 function preloadImages(vns){
   vns.forEach(vn => {
     if(!vn || !vn.image || !vn.image.url) return;
     if(preloadCache.has(vn.id)) return;
     const img = new Image();
-    img.fetchPriority = 'low';
-    img.src = vn.image.url;
+    img.fetchPriority = 'low'; // don't compete with whatever's actually on screen right now
+    img.src = proxiedImageUrl(vn.image.url);
     rememberPreload(vn.id, img);
   });
 }
 
-// Deferred to idle time rather than fired immediately, so these background downloads
-// don't compete for bandwidth with the current image, which should load first.
-export function preloadAround(list, index, radius = 5){
-  if(!list.length) return;
-  const schedule = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
-  schedule(() => {
-    const targets = [];
-    for(let offset = -radius; offset <= radius; offset++){
-      if(offset === 0) continue;
-      const i = ((index + offset) % list.length + list.length) % list.length; // wraps at both ends
-      targets.push(list[i]);
-    }
-    preloadImages(targets);
-  });
+// Debounced: rapid navigation (holding an arrow key, spam-clicking Next) would otherwise
+// queue a fresh preload scan on every single step passed through, each one requesting up
+// to 10 images that get abandoned the instant the next step fires anyway. Collapsing this
+// to one scan, for wherever navigation actually settles, cuts a lot of wasted requests to
+// the image proxy during a fast burst without affecting normal one click at a time browsing,
+// where this fires almost immediately after the (isolated) click either way.
+let preloadDebounceTimer = null;
+const PRELOAD_DEBOUNCE_MS = 200;
+
+// Forward only until the person actually navigates backward at least once, a fresh
+// generate almost never gets browsed backward immediately, so preloading that direction
+// upfront was wasted requests against R2 for the common case. Reset per generate, not
+// per navigation step, see resetPreloadDirection below.
+let hasGoneBack = false;
+
+export function resetPreloadDirection(){
+  hasGoneBack = false;
 }
 
-// Bumped on every render so an in-flight image callback can check it still belongs to
-// the current entry before touching anything, this is the backstop for any stale-callback
-// case that clearing onload/onerror alone doesn't cover, like a timeout firing after the
-// person has already navigated elsewhere.
+export function markWentBackward(){
+  hasGoneBack = true;
+}
+
+export function preloadAround(list, index, radius = 4){
+  // A list of 1 (the startup pick) has no genuine neighbors, every offset would wrap
+  // back to the same single item, redundantly fetching the image already being shown again.
+  if(list.length <= 1) return;
+  clearTimeout(preloadDebounceTimer);
+  preloadDebounceTimer = setTimeout(() => {
+    const schedule = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
+    schedule(() => {
+      const targets = [];
+      for(let offset = 1; offset <= radius; offset++){
+        const fi = ((index + offset) % list.length + list.length) % list.length; // wraps at the end
+        targets.push(list[fi]);
+      }
+      if(hasGoneBack){
+        for(let offset = 1; offset <= radius; offset++){
+          const bi = ((index - offset) % list.length + list.length) % list.length; // wraps at the start
+          targets.push(list[bi]);
+        }
+      }
+      preloadImages(targets);
+    });
+  }, PRELOAD_DEBOUNCE_MS);
+}
+
+// Bumped every render so a stale in flight callback (a late load/error/timeout from a
+// few entries back) can check it's still current before touching anything.
 let renderToken = 0;
-const IMAGE_LOAD_TIMEOUT_MS = 10000; // covers a request that stalls without firing load or error at all
+const IMAGE_LOAD_TIMEOUT_MS = 10000;
 
 function isReadyToShow(vn){
   const img = preloadCache.get(vn.id);
   return !!(img && img.complete && img.naturalWidth > 0);
 }
 
-// Drives the cover image for the current VN: cache hit, fresh download, or no-image
-// fallback, including the sensitive-image blur/reveal state. Everything here is about
-// *how the image gets on screen*, not about what VN data is being shown.
-export function showCover(vn){
-  // Cleared up front so a "load" event that fires late for a stale image (from a few
-  // entries ago) can't run later and wrongly toggle the blur for whatever's showing by then.
+// Debounced the same way as preloadAround, and for the same reason: only applies to the
+// case that actually costs a network request (an uncached cover). A cover that's already
+// preloaded (the common case for normal browsing) skips this and loads instantly, nothing
+// to collapse there since no request is being made in the first place.
+let fetchDebounceTimer = null;
+const FETCH_DEBOUNCE_MS = 180;
+
+export function showCover(vn, isRetry){
   els.cover.onload = null;
   els.cover.onerror = null;
-  const myToken = ++renderToken; // any callback below checks this before touching anything
+  clearTimeout(fetchDebounceTimer);
+  const myToken = ++renderToken;
 
-  // Hidden immediately, before anything else, and flushed with a reflow so it actually
-  // paints this frame. Browsers don't clear an <img>'s pixels the moment src changes,
-  // they keep showing whatever was last painted until the new image is ready, so
-  // without this a fast navigate could leave the *previous* VN's poster on screen
-  // (looking like a wrong/repeated cover) for however long the new one takes to load.
+  // Hidden immediately and flushed with a reflow. Browsers keep showing an <img>'s last
+  // painted pixels until the new src is ready, not blank, so without this a fast navigate
+  // could leave the *previous* VN's poster on screen looking like a wrong/repeated cover.
   els.cover.classList.add('no-anim');
   els.cover.classList.remove('loaded', 'sensitive');
   els.revealBtn.classList.remove('show');
   els.coverFallback.style.display = 'none';
-  void els.cover.offsetWidth; // forces the hide above to actually apply before we go further
+  void els.cover.offsetWidth;
 
   if(!vn.image || !vn.image.url){
     els.coverLoading.classList.remove('show');
     els.cover.removeAttribute('src');
+    els.coverFallback.textContent = 'No cover art on file.';
     els.coverFallback.style.display = 'flex';
     return;
   }
 
   const isSensitive = vn.image.sexual != null && vn.image.sexual >= SENSITIVE_THRESHOLD;
-  const alreadyCached = isReadyToShow(vn); // skip the spinner for this one, but still wait for "load" to reveal it
+  const alreadyCached = isReadyToShow(vn);
 
-  if(!alreadyCached) els.coverLoading.classList.add('show');
+  // Shown on a load failure, this could be a genuinely missing cover, or it could be
+  // navigating fast enough to briefly hit the image proxy's rate limit, there's no way
+  // to tell which from here (that would need switching from <img src> to fetch based
+  // loading, more complexity than this is worth). The retry below covers the rate limit
+  // case without needing to actually detect it: if that's what happened, retrying after
+  // the window passes succeeds, if the cover genuinely doesn't exist, it just fails
+  // quietly again and stops there, isRetry prevents this from looping forever.
+  function showLoadFailure(){
+    els.coverLoading.classList.remove('show');
+    els.coverFallback.textContent = isRetry
+      ? 'No cover image found.'
+      : 'Failed to load the cover, retrying in 10s\u2026';
+    els.coverFallback.style.display = 'flex';
+    if(!isRetry){
+      setTimeout(() => {
+        if(myToken === renderToken) showCover(vn, true);
+      }, 11000);
+    }
+  }
 
-  // Whether cached or not, revealing only ever happens from this "load" handler, never
-  // optimistically. For a true cache hit the browser fires it essentially instantly, so
-  // there's no visible delay, but it also means a cache hit that turns out not to be as
-  // instant as expected (slow disk cache, revalidation, etc.) never shows a stale poster
-  // in the meantime, since the cover stayed hidden until this actually runs.
-  els.cover.onload = () => {
-    if(myToken !== renderToken) return; // a newer render has since taken over the element
-    clearTimeout(timeoutId);
+  function startLoad(){
+    if(myToken !== renderToken) return; // superseded before this even fired
+
+    // Reveal only ever happens from "load", never optimistically, even on a cache hit.
+    // A true hit fires this near instantly so there's no visible delay, but it also means
+    // a hit that isn't quite as instant as expected never shows a stale poster in the meantime.
+    els.cover.onload = () => {
+      if(myToken !== renderToken) return;
+      clearTimeout(timeoutId);
+      els.coverLoading.classList.remove('show');
+      if(isSensitive) els.cover.classList.add('sensitive'); // set while still no-anim, so it's correct before the fade in starts
+      void els.cover.offsetWidth;
+      els.cover.classList.remove('no-anim');
+      els.cover.classList.add('loaded');
+      if(isSensitive) els.revealBtn.classList.add('show');
+    };
+    els.cover.onerror = () => {
+      if(myToken !== renderToken) return;
+      clearTimeout(timeoutId);
+      showLoadFailure();
+    };
+    // backstop for a request that stalls without ever firing load or error
+    const timeoutId = setTimeout(() => {
+      if(myToken !== renderToken) return;
+      showLoadFailure();
+    }, IMAGE_LOAD_TIMEOUT_MS);
+    els.cover.src = proxiedImageUrl(vn.image.url);
+  }
+
+  if(alreadyCached){
     els.coverLoading.classList.remove('show');
-    // Blur is applied while still "no-anim", so it's already correct before the
-    // opacity fade-in starts, otherwise a sensitive image would briefly show unblurred.
-    if(isSensitive) els.cover.classList.add('sensitive');
-    void els.cover.offsetWidth; // without this reflow, removing no-anim next could animate the blur too
-    els.cover.classList.remove('no-anim');
-    els.cover.classList.add('loaded');
-    if(isSensitive) els.revealBtn.classList.add('show');
-  };
-  els.cover.onerror = () => {
-    if(myToken !== renderToken) return;
-    clearTimeout(timeoutId);
-    els.coverLoading.classList.remove('show');
-    els.coverFallback.style.display = 'flex';
-  };
-  // A stalled request that never fires load or error would otherwise leave the
-  // cover hidden (and possibly the spinner spinning) stuck indefinitely, this forces
-  // a resolution either way.
-  const timeoutId = setTimeout(() => {
-    if(myToken !== renderToken) return;
-    els.coverLoading.classList.remove('show');
-    els.coverFallback.style.display = 'flex';
-  }, IMAGE_LOAD_TIMEOUT_MS);
-  els.cover.src = vn.image.url;
+    startLoad(); // no network request happening here, nothing to debounce
+  } else {
+    els.coverLoading.classList.add('show');
+    fetchDebounceTimer = setTimeout(startLoad, FETCH_DEBOUNCE_MS);
+  }
 }

@@ -1,19 +1,18 @@
-import { els } from './dom.js?v=19';
-import { state } from './state.js?v=19';
-import { renderChips } from './tagPicker.js?v=19';
+import { els } from './dom.js?v=53';
+import { state } from './state.js?v=53';
+import { renderChips } from './tagPicker.js?v=53';
 
-// Wires the sidebar's own interactive behavior: live slider label, length/mode toggle
-// buttons, and the English-release sub-checkboxes. This is distinct from filters.js,
-// which reads the CURRENT state of these same controls to build a VNDB query, this file
-// is only concerned with how the controls themselves behave when clicked or changed.
+// Sidebar's own interactive behavior (slider label, toggle buttons, sub checkboxes),
+// separate from filters.js which reads these same controls to build a query.
 
 els.minRating.addEventListener('input', () => {
+  if(parseFloat(els.minRating.value) === 0.5){
+    els.minRating.value = 1; // VNDB's rating filter has no meaningful distinction below 1, don't offer a step that looks like an option but isn't one
+  }
   const v = parseFloat(els.minRating.value);
-  els.minRatingVal.textContent = v === 0 ? 'Any' : v.toFixed(1); // 0 reads as "no minimum", not "0.0"
+  els.minRatingVal.textContent = v === 0 ? 'Any' : v.toFixed(1);
 });
 
-// Delegated to the container instead of one listener per button, so adding or removing
-// a length option later doesn't require re-wiring individual event listeners.
 els.lengthGrid.addEventListener('click', (e) => {
   const btn = e.target.closest('.len-toggle');
   if(!btn) return;
@@ -43,9 +42,7 @@ els.excludeModeToggle.addEventListener('click', (e) => {
   btn.classList.add('active');
 });
 
-// The partial-patch and MTL checkboxes only mean anything if "full English release" is
-// also checked, disabling them prevents a misleading "on but irrelevant" state, and
-// force-unchecking them when the parent turns off stops them silently staying "on" while hidden.
+// partial patch/MTL only mean anything if "full English release" is also checked
 function syncEnglishSubOptions(){
   const enabled = els.englishOnly.checked;
   els.includePartialEnglish.disabled = !enabled;
@@ -58,10 +55,8 @@ function syncEnglishSubOptions(){
 els.englishOnly.addEventListener('change', syncEnglishSubOptions);
 syncEnglishSubOptions();
 
-// Resets every sidebar filter control back to its default value. Deliberately doesn't
-// touch the active-filters recap chips or the reveal preference, those belong to other
-// subsystems (render.js's chips, revealModal.js's own reset), main.js's Reset Filters
-// handler calls this alongside those, rather than this function reaching into either.
+// doesn't touch the active filter chips or reveal preference, main.js's Reset Filters
+// handler calls this alongside those separately
 export function resetFilterUI(){
   els.minRating.value = 0;
   els.minRatingVal.textContent = 'Any';
@@ -75,13 +70,29 @@ export function resetFilterUI(){
   els.yearTo.value = '';
   state.lengths.clear();
   els.lengthGrid.querySelectorAll('.len-toggle').forEach(b => b.classList.remove('active'));
-  state.includeTags = [];
-  state.excludeTags = [];
+
+  // Nukige's exclusion is preserved across a reset instead of forced back to the
+  // default, so removing it (or deliberately keeping it) isn't silently undone every
+  // time the rest of the filters get reset.
+  const hadNukigeExcluded = state.excludeTags.some(t => t.id === 214);
+  // Cleared in place (length = 0), not reassigned (= []). tagPicker.js's closures
+  // captured these exact array references at setup time, replacing them with brand new
+  // arrays here would silently detach those closures from state, chips would still
+  // render correctly (same closure held array) but buildFilters() would read the new,
+  // permanently empty reference and never see anything added after a reset.
+  state.includeTags.length = 0;
+  state.excludeTags.length = 0;
+  if(hadNukigeExcluded) state.excludeTags.push({ id: 214, name: 'Nukige' });
   renderChips(state.includeTags, els.includeChips, 'include');
   renderChips(state.excludeTags, els.excludeChips, 'exclude');
+
   els.listSize.value = '50';
   state.includeMode = 'and';
   state.excludeMode = 'or';
-  els.includeModeToggle.querySelectorAll('.len-toggle').forEach((b,i) => b.classList.toggle('active', i===0));
-  els.excludeModeToggle.querySelectorAll('.len-toggle').forEach((b,i) => b.classList.toggle('active', i===0));
+  // matched by data-mode value rather than a hardcoded index, since the two toggles
+  // don't have the same button order, and first for include, or first for exclude,
+  // the earlier index based version activated whichever button was first regardless
+  // of which mode that actually was, breaking the exclude toggle's visual state
+  els.includeModeToggle.querySelectorAll('.len-toggle').forEach(b => b.classList.toggle('active', b.dataset.mode === 'and'));
+  els.excludeModeToggle.querySelectorAll('.len-toggle').forEach(b => b.classList.toggle('active', b.dataset.mode === 'or'));
 }
