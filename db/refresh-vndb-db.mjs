@@ -517,7 +517,15 @@ function deriveReleaseFlags(vnById){
       // release" whenever completeness and non-MTL English came from two DIFFERENT releases
       // rather than the same one, e.g. a partial non-MTL patch plus an unrelated complete
       // MTL release, neither of which is actually what "Full English release" means.
-      if(enInfo.hasEnNonMtl){
+      //
+      // Also requires releaseIsReleasedById here, same as has_en_lang above. This is a
+      // deliberate site policy choice, not a VNDB-parity fix like the rest of this
+      // function: VNDB's own release-level ["lang","=","en"] filter does NOT check
+      // released<=today (confirmed empirically, a TBA release with rtype=complete still
+      // matched it live), so this makes local results stricter than VNDB's own API on
+      // purpose. "Full English release" checked should mean the English release is
+      // actually out, not just announced.
+      if(enInfo.hasEnNonMtl && releaseIsReleasedById.get(relId)){
         vn.has_en_release_any = 1;
         if(rtype === 'complete') vn.has_en_release_complete = 1;
       }
