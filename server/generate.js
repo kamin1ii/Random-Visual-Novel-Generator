@@ -68,7 +68,12 @@ function buildWhereClause(filters){
 
   if(Array.isArray(filters.lengths) && filters.lengths.length){
     const validLengths = filters.lengths.map(l => parseInt(l, 10)).filter(l => l >= 1 && l <= 5);
-    if(validLengths.length){
+    // All 5 checked means the same thing as none checked ("don't care"), everywhere else
+    // in this UI an empty selection means no restriction, this should behave the same way
+    // rather than emitting length IN (1,2,3,4,5), which (unlike skipping the condition
+    // entirely) actively excludes any VN whose length category isn't set at all, NULL
+    // never satisfies IN(), so those titles silently vanished even with every box checked.
+    if(validLengths.length && validLengths.length < 5){
       conditions.push(`length IN (${validLengths.map(() => '?').join(',')})`);
       params.push(...validLengths);
     }
