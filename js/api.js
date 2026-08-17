@@ -113,3 +113,47 @@ export async function runQuery(filters, listSize){
   results = shuffle(results).slice(0, effectiveSize);
   return { count, results };
 }
+
+// Calls the site's own Worker endpoint instead of VNDB directly, which runs one true
+// random sample against the D1 database (an indexed seek, not VNDB's page based
+// approximation) and returns already shuffled results, no client side shuffle needed
+// here since the query itself doesn't return anything in a predictable order to begin with.
+export async function runQueryD1(filterState, listSize){
+  const res = await fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...filterState, listSize }),
+  });
+  if(!res.ok){
+    const err = new Error('Database request failed (' + res.status + ')');
+    err.status = res.status;
+    throw err;
+  }
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+
+  // D1 returns image_path/sexual as flat fields, but coverImage.js's existing
+  // showCover()/proxiedImageUrl() were built around VNDB's own response shape, a nested
+  // vn.image.url / vn.image.sexual object, reshaping here means the rest of the app
+  // never needs to know or care which path the data actually came from. The
+  // reconstructed URL is never fetched without modification, only its .pathname gets used, matching
+  // exactly what proxiedImageUrl() already does for the live API path.
+  const results = (data.results || []).map(vn => ({
+    ...vn,
+    image: vn.image_path ? { url: 'https://t.vndb.org/' + vn.image_path, sexual: vn.sexual } : null,
+  }));
+
+  return { count: data.count || 0, results, debug: data.debug || null };
+}
+
+// The dump's own timestamp, so the site can show real "data last updated" info instead
+// of leaving it a mystery how fresh the D1 backed results are.
+export async function fetchDbInfo(){
+  try{
+    const res = await fetch('/api/db-info');
+    if(!res.ok) return { dumpTimestamp: null };
+    return res.json();
+  }catch(err){
+    return { dumpTimestamp: null };
+  }
+}

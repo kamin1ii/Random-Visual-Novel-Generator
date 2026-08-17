@@ -1,8 +1,9 @@
 // Tag data loaded once from a local static dump (built from VNDB's own database dump,
 // https://vndb.org/d14) instead of querying VNDB's live /tag endpoint on every search.
-// Fetched once and shared across both the include and exclude pickers.
+// Fetched once and shared across both the include/exclude pickers and, when generating
+// from D1, render.js too (resolving tag ids into names, since D1 only returns ids).
 let tagsPromise = null;
-function loadTags(){
+export function loadTags(){
   if(!tagsPromise){
     tagsPromise = fetch('tags.json?v=1').then(res => res.json());
   }

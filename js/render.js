@@ -2,8 +2,31 @@ import { els } from './dom.js?v=53';
 import { state } from './state.js?v=53';
 import { PLATFORM_LABELS, LENGTH_LABELS } from './constants.js?v=53';
 import { showCover, preloadAround, resetPreloadDirection, markWentBackward } from './coverImage.js?v=53';
+import { loadTags } from './tagPicker.js?v=53';
 
 export { resetPreloadDirection, markWentBackward };
+
+// D1 only returns {id, spoiler} per tag (names live in tags.json, already loaded
+// client side for search, no reason to duplicate that data server side). VNDB's live
+// API already returns full {name, category, spoiler, rating} objects directly, so this
+// has no effect for that path, detected by whether name is already present.
+async function resolveTags(rawTags){
+  if(!Array.isArray(rawTags) || !rawTags.length) return [];
+  if(rawTags[0].name !== undefined) return rawTags;
+
+  const allTags = await loadTags();
+  const byId = new Map(allTags.map(t => [String(t.id), t]));
+  return rawTags.map(t => {
+    const meta = byId.get(String(t.id));
+    return {
+      id: t.id,
+      spoiler: t.spoiler,
+      name: meta ? meta.name : 'Unknown tag',
+      category: meta ? meta.category : 'cont',
+      rating: 0, // tags.json and D1 don't carry per-VN tag strength, only VNDB's live API does
+    };
+  });
+}
 
 export function cleanDescription(raw){
   if(!raw) return 'No synopsis on file for this title.';
@@ -129,9 +152,12 @@ function renderTags(vn){
   draw();
 }
 
-export function showCurrent(){
+let tagRenderToken = 0;
+
+export async function showCurrent(){
   const vn = state.list[state.index];
   if(!vn) return;
+  const myToken = ++tagRenderToken;
 
   els.counter.textContent = (state.index + 1) + ' / ' + state.list.length;
 
@@ -141,10 +167,13 @@ export function showCurrent(){
   showCover(vn);
 
   renderStats(vn);
-  renderTags(vn);
   els.vndbLink.href = 'https://vndb.org/' + vn.id;
   els.coverLink.href = 'https://vndb.org/' + vn.id;
   els.synopsis.textContent = cleanDescription(vn.description);
 
   preloadAround(state.list, state.index);
+
+  const resolvedTags = await resolveTags(vn.tags);
+  if(myToken !== tagRenderToken) return; // a newer navigation already took over, don't overwrite its tags with stale ones
+  renderTags({ ...vn, tags: resolvedTags });
 }

@@ -2,6 +2,29 @@ import { state } from './state.js?v=53';
 import { els } from './dom.js?v=53';
 import { LENGTH_LABELS } from './constants.js?v=53';
 
+// Raw UI state for the D1 backed path, separate from buildFilters() below (which builds
+// VNDB's specific nested JSON filter format for the live API path). The Worker does its
+// own translation into SQL server side, so this just needs to hand over the same
+// underlying values buildFilters() already reads, not VNDB's filter syntax.
+export function gatherFilterState(){
+  return {
+    minVotes: parseInt(els.minVotes.value, 10) || 0,
+    minRating: parseFloat(els.minRating.value) || 0,
+    originalJapaneseOnly: els.originalJapaneseOnly.checked,
+    englishOnly: els.englishOnly.checked,
+    includePartialEnglish: els.includePartialEnglish.checked,
+    includeMTL: els.includeMTL.checked,
+    yearFrom: els.yearFrom.value ? parseInt(els.yearFrom.value, 10) : null,
+    yearTo: els.yearTo.value ? parseInt(els.yearTo.value, 10) : null,
+    lengths: Array.from(state.lengths).map(l => parseInt(l, 10)),
+    includeTags: state.includeTags.map(t => ({ id: t.id })),
+    excludeTags: state.excludeTags.map(t => ({ id: t.id })),
+    includeMode: state.includeMode,
+    excludeMode: state.excludeMode,
+    hideSpoilerTagMatches: els.hideSpoilerTagMatches.checked,
+  };
+}
+
 export function buildFilters(){
   const clauses = [["has_description","=",1]];
 
