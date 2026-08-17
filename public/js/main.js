@@ -5,7 +5,7 @@ import { buildFilters, describeFilters, gatherFilterState } from './filters.js?v
 import { resetFilterUI } from './filterControls.js?v=53';
 import { makeTagPicker, renderChips } from './tagPicker.js?v=53';
 import { showCurrent, setStatus, renderActiveFilters, resetPreloadDirection, markWentBackward } from './render.js?v=53';
-import { initRevealModal, closeRevealModal, isRevealModalOpen } from './revealModal.js?v=55';
+import { initRevealModal, closeRevealModal, isRevealModalOpen } from './revealModal.js?v=56';
 import { initInfoIcons } from './infoIcons.js?v=54';
 
 initInfoIcons();
