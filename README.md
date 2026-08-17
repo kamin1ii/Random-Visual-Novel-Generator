@@ -22,8 +22,8 @@ A random visual novel generator and browser built on data from [VNDB](https://vn
 
 ## Stack
 
-Vanilla HTML, CSS, and ES modules on the frontend, no build step or framework.
+Vanilla HTML, CSS, and ES modules on the frontend, no build step or framework, served from [`public/`](public).
 
-The backend ([`server.js`](server.js)) is a Node/Express app. It serves the static site, proxies and caches VNDB cover art through Cloudflare R2, and answers `/api/generate` against a local SQLite database ([`schema.sql`](schema.sql)) populated from VNDB's public data dump ([`refresh-vndb-db.mjs`](refresh-vndb-db.mjs)), rather than querying VNDB's live API for every request.
+The backend ([`server/`](server)) is a Node/Express app, split by concern: [`index.js`](server/index.js) wires everything together and serves `public/`, [`images.js`](server/images.js) proxies and caches VNDB cover art through Cloudflare R2, [`generate.js`](server/generate.js) answers `/api/generate` and `/api/db-info` against a local SQLite database, and [`rateLimit.js`](server/rateLimit.js) protects both against abuse. The database itself ([`db/schema.sql`](db/schema.sql)) is populated from VNDB's public data dump by [`db/refresh-vndb-db.mjs`](db/refresh-vndb-db.mjs), rather than querying VNDB's live API for every request.
 
-`worker.js` and `wrangler.toml` are kept in the repo for reference, an earlier version of this project ran as a Cloudflare Worker with a D1 database instead of the current self-hosted setup.
+[`legacy-cloudflare/`](legacy-cloudflare) is kept for reference, an earlier version of this project ran as a Cloudflare Worker with a D1 database instead of the current self-hosted setup.
