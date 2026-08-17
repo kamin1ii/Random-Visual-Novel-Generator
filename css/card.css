@@ -1,6 +1,6 @@
 .nav-btn{
   font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text);
-  background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:20px;
+  background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:8px;
   padding:7px 14px;cursor:pointer;
 }
 .nav-btn:hover{border-color:var(--gold-dim);}
@@ -24,7 +24,7 @@
 .cover-wrap img.no-anim{transition:none !important;}
 .cover-fallback{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--muted);
+  font-family:'Sora',sans-serif;color:var(--muted);
   font-size:14px;text-align:center;padding:20px;
 }
 .cover-loading{
@@ -50,7 +50,7 @@
 }
 .reveal-btn.show{display:flex;}
 .reveal-btn span{
-  padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:20px;
+  padding:6px 14px;border:1px solid rgba(255,255,255,.3);border-radius:10px;
 }
 
 .nameplate{margin-bottom:10px;}
@@ -64,7 +64,7 @@
 .chip.stat{
   font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text);
   background:var(--panel-2);border:1px solid var(--panel-edge);
-  padding:4px 9px;border-radius:20px;white-space:nowrap;
+  padding:4px 9px;border-radius:10px;white-space:nowrap;
 }
 .chip.stat.rating{color:var(--gold);border-color:rgba(226,178,86,.35);}
 .chip.stat.lang{color:#7dd88a;border-color:rgba(125,216,138,.3);}
@@ -73,7 +73,7 @@
   display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:22px;
   /* Capped so a title with a huge tag list (once "+N more" is expanded) can't eat the
      space meant for the synopsis and footer below it, since content-col isn't itself
-     scrollable, only this row and .dialogue are, each independently. */
+     scrollable, only this row and .synopsis are, each independently. */
   max-height:110px;overflow-y:auto;padding-right:4px;
   scrollbar-width:thin;
   scrollbar-color:var(--panel-edge) transparent;
@@ -85,7 +85,7 @@
 .tag{
   font-size:11px;color:var(--accent);
   background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.28);
-  padding:3px 9px;border-radius:20px;
+  padding:3px 9px;border-radius:10px;
 }
 .tag.tag-more{
   font-family:inherit;cursor:pointer;
@@ -99,16 +99,16 @@
 }
 .tag.tag-all-link:hover{color:var(--gold);border-color:var(--gold-dim);}
 
-.dialogue{
+.synopsis{
   font-size:14px;line-height:1.6;color:var(--text);margin:0 0 12px;
   flex:1;min-height:0;overflow-y:auto;padding-right:6px; /* absorbs all leftover space and scrolls internally, so a long synopsis never grows the card past its fixed height */
   scrollbar-width:thin;
   scrollbar-color:var(--panel-edge) transparent;
 }
-.dialogue::-webkit-scrollbar{width:7px;}
-.dialogue::-webkit-scrollbar-track{background:transparent;}
-.dialogue::-webkit-scrollbar-thumb{background:var(--panel-edge);border-radius:20px;}
-.dialogue::-webkit-scrollbar-thumb:hover{background:var(--gold-dim);}
+.synopsis::-webkit-scrollbar{width:7px;}
+.synopsis::-webkit-scrollbar-track{background:transparent;}
+.synopsis::-webkit-scrollbar-thumb{background:var(--panel-edge);border-radius:20px;}
+.synopsis::-webkit-scrollbar-thumb:hover{background:var(--gold-dim);}
 
 .card-footer{
   display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:space-between;
@@ -129,7 +129,7 @@
 .filter-chip{
   font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);
   background:var(--panel-2);border:1px solid var(--panel-edge);
-  padding:4px 10px;border-radius:20px;
+  padding:4px 10px;border-radius:10px;
   /* Lets a chip wrap onto multiple lines instead of overflowing past the container's edge
      (used to be nowrap, which broke when a long tag list was joined into one chip). */
   max-width:100%;white-space:normal;overflow-wrap:break-word;

@@ -11,3 +11,12 @@ ehthumbs.db
 
 # Local env / secrets
 .env
+.wrangler/
+
+# Node server (VPS deployment)
+node_modules/
+randomvn-dump.sql
+
+# Local-only, hardcodes the VPS's real origin IP, publishing it would defeat the point of
+# keeping that IP hidden behind Cloudflare's proxy
+refresh-database.ps1

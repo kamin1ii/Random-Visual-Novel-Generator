@@ -34,7 +34,7 @@ body{
 .masthead{
   text-align:center;margin-bottom:28px;
   padding-bottom:20px;
-  border-bottom:1px solid var(--panel-edge); /* a plain divider, kept deliberately simple instead of a gradient */
+  border-bottom:1px solid var(--panel-edge);
   width:100%;max-width:1320px; /* matches .layout's width so the divider spans the same line as the content below */
 }
 .masthead h1{
@@ -63,7 +63,10 @@ select, input[type=number], input[type=text]{
   padding:8px 10px;
   border-radius:8px;
 }
-select:focus, input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+/* Scoped to text/number inputs specifically, not select or checkbox, both of which
+   are deliberately left with no focus styling at all below. */
+input[type=text]:focus-visible, input[type=number]:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+select:focus-visible{outline:none;}
 
 /* Remove the browser's native number input spin buttons. They render with their own
    OS styled box (often a white hover state, like in Chrome and Edge) that ignores
@@ -101,5 +104,5 @@ input[type=checkbox]:checked::after{
   border-width:0 2px 2px 0;
   transform:rotate(45deg);
 }
-input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+input[type=checkbox]:focus-visible{outline:none;}
 input[type=checkbox]:disabled{opacity:.4;cursor:default;}
