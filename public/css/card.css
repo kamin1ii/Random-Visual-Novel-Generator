@@ -138,4 +138,5 @@
 .footer-credit{text-align:center;font-size:11px;color:var(--muted);margin-top:18px;}
 .footer-credit a{color:var(--muted);}
 
+.reveal-pref-group{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
 .reveal-pref{justify-content:center;margin:16px 0 0;}
