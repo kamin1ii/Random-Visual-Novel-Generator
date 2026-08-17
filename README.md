@@ -22,8 +22,8 @@ A random visual novel generator and browser built on data from [VNDB](https://vn
 
 ## Stack
 
-Vanilla HTML, CSS, and ES modules on the frontend, no build step or framework, served from [`public/`](public).
+Vanilla HTML, CSS, and ES modules, served from [`public/`](public).
 
-The backend ([`server/`](server)) is a Node/Express app, split by concern: [`index.js`](server/index.js) wires everything together and serves `public/`, [`images.js`](server/images.js) proxies and caches VNDB cover art through Cloudflare R2, [`generate.js`](server/generate.js) answers `/api/generate` and `/api/db-info` against a local SQLite database, and [`rateLimit.js`](server/rateLimit.js) protects both against abuse. The database itself ([`db/schema.sql`](db/schema.sql)) is populated from VNDB's public data dump by [`db/refresh-vndb-db.mjs`](db/refresh-vndb-db.mjs), rather than querying VNDB's live API for every request.
+The backend ([`server/`](server)) is a Node/Express app. [`index.js`](server/index.js) wires everything together and serves `public/`, [`images.js`](server/images.js) proxies and caches VNDB cover art through Cloudflare R2, [`generate.js`](server/generate.js) answers `/api/generate` and `/api/db-info` against a local SQLite database, and [`rateLimit.js`](server/rateLimit.js) protects both against abuse. The database itself ([`db/schema.sql`](db/schema.sql)) is populated from VNDB's public data dump by [`db/refresh-vndb-db.mjs`](db/refresh-vndb-db.mjs), rather than querying VNDB's live API for every request.
 
 [`legacy-cloudflare/`](legacy-cloudflare) is kept for reference, an earlier version of this project ran as a Cloudflare Worker with a D1 database instead of the current self-hosted setup.
