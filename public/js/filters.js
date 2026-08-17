@@ -26,7 +26,13 @@ export function gatherFilterState(){
 }
 
 export function buildFilters(){
-  const clauses = [["has_description","=",1]];
+  // VNDB represents an announced but unreleased title's date as the literal string "TBA",
+  // which sorts after every real date, so "released <= today" cleanly excludes it (and
+  // any real release with a future date) without needing to treat that string as a special case. Applied
+  // unconditionally, not tied to any checkbox, a "generate a real thing to play" tool
+  // shouldn't turn up something that isn't out yet no matter what filters are set.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const clauses = [["has_description","=",1], ["released","<=",todayStr]];
 
   const minVotes = parseInt(els.minVotes.value, 10) || 0;
   if(minVotes > 0) clauses.push(["votecount",">=",minVotes]);
@@ -46,9 +52,15 @@ export function buildFilters(){
     }
 
     // VN level check above just says an English release exists, completeness is only
-    // tracked per-release, hence the separate nested filter
+    // tracked per release, hence the separate nested filter. released<=today here too,
+    // same reasoning as the VN level one above but aimed at the release itself. Without
+    // it, a release that's still just announced (rtype and language already set, but not
+    // actually out) satisfies "complete non MTL English release" on a technicality.
     const releaseLang = ["lang","=","en"];
-    clauses.push(["release","=", includePartial ? releaseLang : ["and", releaseLang, ["rtype","=","complete"]]]);
+    const releaseReleased = ["released","<=",todayStr];
+    clauses.push(["release","=", includePartial
+      ? ["and", releaseLang, releaseReleased]
+      : ["and", releaseLang, releaseReleased, ["rtype","=","complete"]]]);
   }
 
   const yearFrom = parseInt(els.yearFrom.value, 10);
@@ -83,7 +95,7 @@ export function buildFilters(){
   }
 
   // All 5 checked means the same thing as none checked ("don't care"), matches the D1
-  // path's own reasoning: a VN with no length category set never matches any of the 5
+  // path's own reasoning. A VN with no length category set never matches any of the 5
   // clauses below, so filtering on all 5 anyway would still exclude it, even though
   // checking every box reads as "show me everything" to whoever's looking at the form.
   if(state.lengths.size && state.lengths.size < 5){

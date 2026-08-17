@@ -1,4 +1,4 @@
-// Shared IP resolution plus every rate limiter: rateLimitMiddleware guards the expensive
+// Shared IP resolution plus every rate limiter. rateLimitMiddleware guards the expensive
 // /api/generate endpoint, imageRequestAllowed guards every /img/* request, and
 // imageMissAllowed additionally guards just the disk write (cache miss) path within that.
 // Kept in one file since they share getClientIp and (the two image limiters) the same
@@ -16,10 +16,10 @@ export function getClientIp(req){
   return req.socket.remoteAddress;
 }
 
-// --- Rate limiting for /api/generate, mirrors VNDB's own published API terms: up to 200
+// --- Rate limiting for /api/generate, mirrors VNDB's own published API terms. Up to 200
 // requests per 5 minutes, up to 1 second of measured handler execution time per minute,
 // and requests running past 3 seconds get their response aborted. Kept in process (no
-// external store) since this is a single Node process. Caveat: because better-sqlite3
+// external store) since this is a single Node process. Caveat, because better-sqlite3
 // queries run synchronously on the main thread, the 3 second abort can only ever cut off
 // the client visible response, it cannot preempt a hung query mid flight, Node has no way
 // to interrupt synchronous JS from a timer callback. In practice this endpoint's queries
@@ -122,7 +122,8 @@ function createWindowLimiter(windowMs, max){
 // cheap in CPU/IO terms, but it still costs real egress bandwidth off this server, unlike the
 // old Cloudflare/R2 setup, that bandwidth now counts against this server's own transfer
 // allowance, so even "cheap" requests are worth bounding against a scripted client
-// hammering already cached images. Matches the 90 requests per 10 seconds rule this site ran under R2.
+// hammering already cached images. Matches the rule this site ran under R2, 90 requests
+// per 10 seconds.
 export const imageRequestAllowed = createWindowLimiter(10 * 1000, 90);
 
 // Separate, much higher throughput limiter just for the disk write (cache miss) path on
