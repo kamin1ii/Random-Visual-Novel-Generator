@@ -8,16 +8,16 @@
 // entirely inside one transaction (so a failed run doesn't leave a half loaded database).
 //
 // This does NOT touch server.js or the live site by itself, it only populates the
-// database file. Run this on the VPS itself (it writes straight to the on disk sqlite
-// file, no network database round trip).
+// database file. Runs on the VPS itself, writing straight to the on disk sqlite
+// file, no network database round trip.
 //
-// Setup, run once on the VPS.
+// One time setup on the VPS, before the first run.
 //   1. apt install zstd sqlite3 rsync (sqlite3 CLI not required by this script, useful
 //      for poking at the db by hand)
 //   2. npm install (installs better-sqlite3, from vnpicker's package.json)
 //   3. sqlite3 /opt/rvng/data/randomvn.db < schema.sql   (once, before the first run)
 //
-// Then, any time a refresh is needed.
+// To refresh, any time fresh data is needed.
 //   DB_PATH=/opt/rvng/data/randomvn.db node refresh-vndb-db.mjs
 // (DB_PATH defaults to /opt/rvng/data/randomvn.db if unset, matching server.js)
 //
