@@ -1,6 +1,7 @@
 import { els } from './dom.js?v=55';
 import { state } from './state.js?v=53';
 import { SENSITIVE_THRESHOLD } from './constants.js?v=53';
+import { makeModal } from './modal.js?v=1';
 
 // Self-contained "confirm before revealing explicit art" flow, kept separate from
 // main.js so that file stays about wiring filters/navigation, not also owning a modal
@@ -63,30 +64,6 @@ function reblurCurrentIfSensitive(){
   }
 }
 
-// Same open/close/backdrop-click/Cancel-Confirm shape both modals in this file share
-// (and the same shape main.js's own makeModal() covers for its single-OK modals), kept
-// as one factory instead of writing the wiring out twice.
-function makeConfirmModal(modalEl, cancelBtn, confirmBtn, { onOpen, onConfirm } = {}){
-  function close(){ modalEl.classList.remove('open'); }
-  function open(){ onOpen?.(); modalEl.classList.add('open'); }
-  function isOpen(){ return modalEl.classList.contains('open'); }
-
-  cancelBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // otherwise this click also advances to the next entry
-    close();
-  });
-  confirmBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    onConfirm?.();
-    close();
-  });
-  modalEl.addEventListener('click', (e) => {
-    if(e.target === modalEl) close(); // backdrop only, not the dialog itself
-  });
-
-  return { open, close, isOpen };
-}
-
 // Set inside initRevealModal, once the controller it delegates to actually exists.
 // closeRevealModal/isRevealModalOpen stay as stable exported functions either way, so
 // main.js's import binding never sees a reassignment, just this reaching further in.
@@ -101,7 +78,8 @@ export function isRevealModalOpen(){
 }
 
 export function initRevealModal(){
-  revealModalCtl = makeConfirmModal(els.revealModal, els.revealCancel, els.revealConfirm, {
+  revealModalCtl = makeModal(els.revealModal, els.revealConfirm, {
+    cancelBtn: els.revealCancel,
     onOpen: () => { els.revealRemember.checked = false; },
     onConfirm: () => {
       if(els.revealRemember.checked) setRememberReveal(true);
@@ -114,7 +92,7 @@ export function initRevealModal(){
     if(revealIsRemembered()){
       revealCover();
     } else {
-      revealModalCtl.open();
+      revealModalCtl.show();
     }
   });
 
@@ -126,7 +104,8 @@ export function initRevealModal(){
   // Unchecking (turning blur off) needs a confirmation, it skips the warning entirely on
   // every title, no per-image asking. Re-checking (turning blur back on) doesn't, undoing
   // a safety default isn't something that needs to be defended against.
-  const neverBlurModal = makeConfirmModal(els.neverBlurModal, els.neverBlurCancel, els.neverBlurConfirm, {
+  const neverBlurModal = makeModal(els.neverBlurModal, els.neverBlurConfirm, {
+    cancelBtn: els.neverBlurCancel,
     onConfirm: () => {
       setNeverBlur(true);
       revealCover(); // the card on screen right now shouldn't stay blurred behind a setting that just turned blurring off
@@ -138,7 +117,7 @@ export function initRevealModal(){
   els.blurExplicitCheckbox.addEventListener('change', () => {
     if(!els.blurExplicitCheckbox.checked){
       els.blurExplicitCheckbox.checked = true; // stays blurred until actually confirmed
-      neverBlurModal.open();
+      neverBlurModal.show();
     } else {
       setNeverBlur(false);
       reblurCurrentIfSensitive();
