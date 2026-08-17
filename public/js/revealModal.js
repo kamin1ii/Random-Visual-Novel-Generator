@@ -60,11 +60,6 @@ export function isRevealModalOpen(){
   return els.revealModal.classList.contains('open');
 }
 
-export function resetRevealPreference(){
-  setRememberReveal(false);
-  setNeverBlur(false);
-}
-
 export function initRevealModal(){
   els.revealBtn.addEventListener('click', (e) => {
     e.stopPropagation(); // otherwise this click also advances to the next entry
@@ -115,6 +110,7 @@ export function initRevealModal(){
   });
   els.neverBlurConfirm.addEventListener('click', () => {
     setNeverBlur(true);
+    revealCover(); // the card on screen right now shouldn't stay blurred behind a setting that just turned blurring off
     els.neverBlurModal.classList.remove('open');
   });
   els.neverBlurModal.addEventListener('click', (e) => {
