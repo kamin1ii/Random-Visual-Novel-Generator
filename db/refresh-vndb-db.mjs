@@ -334,8 +334,16 @@ function buildVnTagsWithHierarchy(tagAgg, metaTagIds){
     const avgVote = agg.voteSum / agg.voteCount;
     if(avgVote <= 0) continue;
     const [vid, tag] = key.split('|');
-    const avgSpoiler = agg.spoilerCount ? Math.round(agg.spoilerSum / agg.spoilerCount) : 0;
-    const spoiler = Math.min(2, Math.max(0, avgSpoiler));
+    // Matches VNDB's own tag_vn_calc() SQL function verbatim (code.blicky.net/yorhel/vndb,
+    // sql/func.sql), not a plain round-to-nearest: CASE WHEN count(spoiler)=0 THEN
+    // min(defaultspoil) WHEN avg(spoiler)>1.3 THEN 2 WHEN avg(spoiler)>0.4 THEN 1 ELSE 0
+    // END. A plain Math.round (0.5/1.5 cutoffs) disagreed with VNDB's real (0.4/1.3)
+    // cutoffs often enough to leak spoiler-flagged tags through a "no spoilers" filter.
+    // defaultspoil itself (a per-tag setting, not per-vote) isn't in either dump this
+    // script pulls from, defaults to VNDB's own column default of 0 for the zero-vote case,
+    // same as before.
+    const avgSpoiler = agg.spoilerCount ? agg.spoilerSum / agg.spoilerCount : 0;
+    const spoiler = agg.spoilerCount === 0 ? 0 : avgSpoiler > 1.3 ? 2 : avgSpoiler > 0.4 ? 1 : 0;
 
     for(const rawId of [tag, ...getAncestors(tag)]){
       // strips the leading "g" so this matches tags.json's bare-integer id format exactly,
