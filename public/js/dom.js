@@ -53,5 +53,7 @@ export const els = {
   noResultsBody: document.getElementById('noResultsBody'),
   noResultsOk: document.getElementById('noResultsOk'),
   rateLimitModal: document.getElementById('rateLimitModal'),
-  rateLimitOk: document.getElementById('rateLimitOk')
+  rateLimitOk: document.getElementById('rateLimitOk'),
+  vndbApiModal: document.getElementById('vndbApiModal'),
+  vndbApiOk: document.getElementById('vndbApiOk')
 };
