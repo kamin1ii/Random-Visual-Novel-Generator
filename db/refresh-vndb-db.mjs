@@ -27,7 +27,7 @@
 // file rather than split across modules.
 
 import { execSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, rmSync, createWriteStream, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, createWriteStream, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { finished } from 'node:stream/promises';
@@ -39,6 +39,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DUMP_URL = 'https://dl.vndb.org/dump/vndb-db-latest.tar.zst';
 const TAGS_DUMP_URL = 'https://dl.vndb.org/dump/vndb-tags-latest.json.gz';
 const WORK_DIR = path.join(__dirname, 'vndb-dump-work');
+// Persists across runs (unlike WORK_DIR, wiped every run). VNDB only rebuilds these dumps
+// once a day (~08:00 GMT), the "latest" URLs 307-redirect to a dated filename each time
+// (vndb-db-2026-08-17.tar.zst), so re-running this script more than once on the same day,
+// as happens often while chasing down a data bug, doesn't need to pull the ~180MB archive
+// again for identical content, just resolve the redirect (a HEAD request) and reuse the
+// file already sitting here if its name matches.
+const DUMP_CACHE_DIR = path.join(__dirname, 'dump-cache');
 const DB_PATH = process.env.DB_PATH || '/opt/rvng/data/randomvn.db';
 const COVERS_DIR = process.env.COVERS_DIR || '/opt/rvng/data/covers';
 const PUBLIC_TAGS_PATH = path.join(__dirname, '..', 'public', 'tags.json');
@@ -176,11 +183,28 @@ async function resolveArchivePath(){
     return resolvedPath;
   }
 
-  console.log('No local file given, downloading latest VNDB dump...');
-  const archivePath = path.join(WORK_DIR, 'dump.tar.zst');
-  await downloadWithProgress(DUMP_URL, archivePath);
-  console.log(`Downloaded, saved to: ${archivePath}`);
-  return archivePath;
+  mkdirSync(DUMP_CACHE_DIR, { recursive: true });
+  console.log('Checking for today\'s VNDB dump...');
+  const headRes = await fetch(DUMP_URL, { method: 'HEAD' });
+  const filename = new URL(headRes.url).pathname.split('/').pop();
+  const cachedPath = path.join(DUMP_CACHE_DIR, filename);
+
+  if(existsSync(cachedPath)){
+    console.log(`Already have today's dump cached, reusing it: ${cachedPath}`);
+    return cachedPath;
+  }
+
+  console.log(`Not cached, downloading (${filename})...`);
+  await downloadWithProgress(headRes.url, cachedPath);
+  console.log(`Downloaded, saved to: ${cachedPath}`);
+
+  // Yesterday's cached dump is never needed again once today's is in hand, remove it
+  // rather than letting this directory grow by ~180MB every day.
+  for(const f of readdirSync(DUMP_CACHE_DIR)){
+    if(f !== filename) rmSync(path.join(DUMP_CACHE_DIR, f));
+  }
+
+  return cachedPath;
 }
 
 // Unpacks just the tables this site needs, returns the dump's own timestamp.
