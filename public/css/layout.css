@@ -28,10 +28,10 @@
   flex-direction:column;
 }
 
-.field-row{display:flex;gap:18px;}
+.field-row{display:flex;gap:18px;margin-bottom:9px;} /* matches the standalone .field rhythm below it, otherwise this row sits flush against the next field with no gap at all, most visible once it stacks into a single column on narrow screens */
 .field-row .field{margin-bottom:11px;min-width:0;}
-.field-row .score-field{flex:4;padding-right:2px;} /* small but deliberate, not zero: without any gap "Any" sits flush against the divider with nothing separating it from the field beside it, easy to misread as belonging there instead of to the slider on its left */
-.field-row .votes-field{flex:2;}
+.field-row .score-field{flex:3.5;padding-right:2px;} /* small but deliberate, not zero: without any gap "Any" sits flush against the divider with nothing separating it from the field beside it, easy to misread as belonging there instead of to the slider on its left */
+.field-row .votes-field{flex:2.5;} /* wider than a plain 4:2 split gives it, otherwise "Minimum votes" wraps onto two lines in its own label */
 /* Without a visible boundary here, the score slider's value label had nothing marking
    where one field ends and the other begins, easy to misread as belonging to the field
    beside it instead of the one above it. Reset on mobile below, where the two fields
