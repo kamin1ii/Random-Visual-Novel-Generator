@@ -4,7 +4,7 @@ A random visual novel generator and browser built on data from [VNDB](https://vn
 
 **Site:** https://randomvn.org
 
-![Screenshot](https://i.postimg.cc/Bv9qV1Vc/RVNGupdate.png)
+![Screenshot](https://i.postimg.cc/1zVgs299/randomvnss.png)
 
 ## Features
 
