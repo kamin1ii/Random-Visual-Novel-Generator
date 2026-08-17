@@ -122,7 +122,8 @@ function createWindowLimiter(windowMs, max){
 // cheap in CPU/IO terms, but it still costs real egress bandwidth off this VPS, unlike the
 // old Cloudflare/R2 setup, that bandwidth now counts against this server's own transfer
 // allowance, so even "cheap" requests are worth bounding against a scripted client
-// hammering already cached images. Matches the 90 requests per 10 seconds rule this site ran under R2.
+// hammering already cached images. Matches the rule this site ran under R2, 90 requests
+// per 10 seconds.
 export const imageRequestAllowed = createWindowLimiter(10 * 1000, 90);
 
 // Separate, much higher throughput limiter just for the disk write (cache miss) path on
