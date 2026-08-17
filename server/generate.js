@@ -28,7 +28,12 @@ generateRouter.get('/api/db-info', (req, res) => {
 // interpolation), this endpoint handles live public input, unlike the offline import
 // script, so this matters here in a way it didn't there.
 function buildWhereClause(filters){
-  const conditions = ['has_description = 1']; // baseline, matches the site's existing behavior regardless of UI settings
+  // Baseline, always applied regardless of UI settings. released_year is only ever set
+  // (db/refresh-vndb-db.mjs, deriveReleaseFlags) from a release that's actually out, not
+  // an announced/TBA one, so NULL here means literally nothing about this VN has released
+  // yet, an announce only or still in development title shouldn't turn up in a "generate
+  // a real thing to play" tool no matter what filters are set.
+  const conditions = ['has_description = 1', 'released_year IS NOT NULL'];
   const params = [];
 
   const minVotes = parseInt(filters.minVotes, 10) || 0;
