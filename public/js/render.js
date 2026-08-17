@@ -144,7 +144,7 @@ function renderTags(vn){
     allLink.href = 'https://vndb.org/' + vn.id + '/tags#tags';
     allLink.target = '_blank';
     allLink.rel = 'noopener';
-    allLink.textContent = 'All tags on VNDB ↗';
+    allLink.textContent = 'All tags on VNDB';
     allLink.addEventListener('click', (e) => e.stopPropagation());
     els.tagRow.appendChild(allLink);
   }
