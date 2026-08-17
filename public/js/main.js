@@ -5,8 +5,9 @@ import { buildFilters, describeFilters, gatherFilterState } from './filters.js?v
 import { resetFilterUI } from './filterControls.js?v=53';
 import { makeTagPicker, renderChips } from './tagPicker.js?v=53';
 import { showCurrent, setStatus, renderActiveFilters, resetPreloadDirection, markWentBackward } from './render.js?v=53';
-import { initRevealModal, closeRevealModal, isRevealModalOpen } from './revealModal.js?v=57';
+import { initRevealModal, closeRevealModal, isRevealModalOpen } from './revealModal.js?v=58';
 import { initInfoIcons } from './infoIcons.js?v=54';
+import { makeModal } from './modal.js?v=1';
 
 initInfoIcons();
 
@@ -17,19 +18,6 @@ makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.exc
 // visible chip until the person reset filters once
 renderChips(state.includeTags, els.includeChips, 'include');
 renderChips(state.excludeTags, els.excludeChips, 'exclude');
-
-// one small reusable modal helper instead of writing the same show/close/isOpen/
-// click-outside logic out twice, only the no-results modal needs a dynamic message
-function makeModal(modalEl, okBtn){
-  function show(){ modalEl.classList.add('open'); }
-  function close(){ modalEl.classList.remove('open'); }
-  function isOpen(){ return modalEl.classList.contains('open'); }
-  okBtn.addEventListener('click', close);
-  modalEl.addEventListener('click', (e) => {
-    if(e.target === modalEl) close();
-  });
-  return { show, close, isOpen };
-}
 
 const noResultsModal = makeModal(els.noResultsModal, els.noResultsOk);
 const rateLimitModal = makeModal(els.rateLimitModal, els.rateLimitOk);
