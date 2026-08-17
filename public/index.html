@@ -25,12 +25,12 @@
 <meta property="og:description" content="A random visual novel generator and browser built on the VNDB API. Filter by score, tags, language, and length, generate a randomized list, and browse the results one at a time.">
 <meta property="og:url" content="https://randomvn.org/">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="css/base.css?v=6">
-<link rel="stylesheet" href="css/layout.css?v=5">
+<link rel="stylesheet" href="css/base.css?v=7">
+<link rel="stylesheet" href="css/layout.css?v=6">
 <link rel="stylesheet" href="css/filters.css?v=6">
 <link rel="stylesheet" href="css/card.css?v=5">
 <link rel="stylesheet" href="css/modal.css?v=2">
-<link rel="stylesheet" href="css/responsive.css?v=3">
+<link rel="stylesheet" href="css/responsive.css?v=4">
 </head>
 <body>
 
@@ -44,17 +44,19 @@
 <div class="layout">
   <div class="sidebar">
     <div class="sidebar-fields">
-    <div class="field">
-      <label for="minRating">Minimum score</label>
-      <div class="slider-row">
-        <input type="range" id="minRating" min="0" max="9.5" step="0.5" value="0">
-        <span class="slider-val" id="minRatingVal">Any</span>
+    <div class="field-row">
+      <div class="field" style="flex:3;">
+        <label for="minRating">Minimum score</label>
+        <div class="slider-row">
+          <input type="range" id="minRating" min="0" max="9.5" step="0.5" value="0">
+          <span class="slider-val" id="minRatingVal">Any</span>
+        </div>
       </div>
-    </div>
 
-    <div class="field">
-      <label for="minVotes">Minimum votes</label>
-      <input type="number" id="minVotes" min="0" step="5" value="10">
+      <div class="field" style="flex:2;">
+        <label for="minVotes">Minimum votes</label>
+        <input type="number" id="minVotes" min="0" step="5" value="10">
+      </div>
     </div>
 
     <div class="field">
