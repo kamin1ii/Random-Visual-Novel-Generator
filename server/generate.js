@@ -1,4 +1,4 @@
-// /api/generate and /api/db-info: the actual query engine. Filters get turned into a
+// /api/generate and /api/db-info, the actual query engine. Filters get turned into a
 // parameterized WHERE clause, matched VNs are picked via a true random indexed seek
 // (rand_key), and tags for the returned VNs are fetched separately.
 
@@ -180,7 +180,7 @@ function pruneExpiredCacheEntries(){
   }
 }
 
-// Real wall-clock cost per stage, the local equivalent of D1's rows_read: since
+// Real wall clock cost per stage, the local equivalent of D1's rows_read. Since
 // better-sqlite3 runs synchronously on the main thread, elapsed time here IS the actual
 // work done, not an approximation. Logged server side (visible via `journalctl -u rvng
 // -f`) and returned to the client so "how intensive was this search" has a real answer
