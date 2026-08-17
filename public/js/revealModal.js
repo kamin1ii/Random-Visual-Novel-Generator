@@ -63,43 +63,59 @@ function reblurCurrentIfSensitive(){
   }
 }
 
-function openRevealModal(){
-  els.revealRemember.checked = false;
-  els.revealModal.classList.add('open');
+// Same open/close/backdrop-click/Cancel-Confirm shape both modals in this file share
+// (and the same shape main.js's own makeModal() covers for its single-OK modals), kept
+// as one factory instead of writing the wiring out twice.
+function makeConfirmModal(modalEl, cancelBtn, confirmBtn, { onOpen, onConfirm } = {}){
+  function close(){ modalEl.classList.remove('open'); }
+  function open(){ onOpen?.(); modalEl.classList.add('open'); }
+  function isOpen(){ return modalEl.classList.contains('open'); }
+
+  cancelBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // otherwise this click also advances to the next entry
+    close();
+  });
+  confirmBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onConfirm?.();
+    close();
+  });
+  modalEl.addEventListener('click', (e) => {
+    if(e.target === modalEl) close(); // backdrop only, not the dialog itself
+  });
+
+  return { open, close, isOpen };
 }
 
+// Set inside initRevealModal, once the controller it delegates to actually exists.
+// closeRevealModal/isRevealModalOpen stay as stable exported functions either way, so
+// main.js's import binding never sees a reassignment, just this reaching further in.
+let revealModalCtl = null;
+
 export function closeRevealModal(){
-  els.revealModal.classList.remove('open');
+  revealModalCtl?.close();
 }
 
 export function isRevealModalOpen(){
-  return els.revealModal.classList.contains('open');
+  return revealModalCtl?.isOpen() ?? false;
 }
 
 export function initRevealModal(){
+  revealModalCtl = makeConfirmModal(els.revealModal, els.revealCancel, els.revealConfirm, {
+    onOpen: () => { els.revealRemember.checked = false; },
+    onConfirm: () => {
+      if(els.revealRemember.checked) setRememberReveal(true);
+      revealCover();
+    },
+  });
+
   els.revealBtn.addEventListener('click', (e) => {
     e.stopPropagation(); // otherwise this click also advances to the next entry
     if(revealIsRemembered()){
       revealCover();
     } else {
-      openRevealModal();
+      revealModalCtl.open();
     }
-  });
-
-  els.revealCancel.addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeRevealModal();
-  });
-
-  els.revealConfirm.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if(els.revealRemember.checked) setRememberReveal(true);
-    revealCover();
-    closeRevealModal();
-  });
-
-  els.revealModal.addEventListener('click', (e) => {
-    if(e.target === els.revealModal) closeRevealModal(); // backdrop only, not the dialog itself
   });
 
   els.revealPrefCheckbox.checked = !revealIsRemembered();
@@ -110,27 +126,22 @@ export function initRevealModal(){
   // Unchecking (turning blur off) needs a confirmation, it skips the warning entirely on
   // every title, no per-image asking. Re-checking (turning blur back on) doesn't, undoing
   // a safety default isn't something that needs to be defended against.
+  const neverBlurModal = makeConfirmModal(els.neverBlurModal, els.neverBlurCancel, els.neverBlurConfirm, {
+    onConfirm: () => {
+      setNeverBlur(true);
+      revealCover(); // the card on screen right now shouldn't stay blurred behind a setting that just turned blurring off
+    },
+  });
+
   els.blurExplicitCheckbox.checked = !neverBlurIsEnabled();
   els.revealPrefCheckbox.disabled = neverBlurIsEnabled();
   els.blurExplicitCheckbox.addEventListener('change', () => {
     if(!els.blurExplicitCheckbox.checked){
       els.blurExplicitCheckbox.checked = true; // stays blurred until actually confirmed
-      els.neverBlurModal.classList.add('open');
+      neverBlurModal.open();
     } else {
       setNeverBlur(false);
       reblurCurrentIfSensitive();
     }
-  });
-
-  els.neverBlurCancel.addEventListener('click', () => {
-    els.neverBlurModal.classList.remove('open');
-  });
-  els.neverBlurConfirm.addEventListener('click', () => {
-    setNeverBlur(true);
-    revealCover(); // the card on screen right now shouldn't stay blurred behind a setting that just turned blurring off
-    els.neverBlurModal.classList.remove('open');
-  });
-  els.neverBlurModal.addEventListener('click', (e) => {
-    if(e.target === els.neverBlurModal) els.neverBlurModal.classList.remove('open');
   });
 }

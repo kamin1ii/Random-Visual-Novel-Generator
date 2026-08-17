@@ -1,7 +1,7 @@
 import { els } from './dom.js?v=55';
 import { state } from './state.js?v=53';
 import { PLATFORM_LABELS, LENGTH_LABELS } from './constants.js?v=53';
-import { showCover, preloadAround, resetPreloadDirection, markWentBackward } from './coverImage.js?v=56';
+import { showCover, preloadAround, resetPreloadDirection, markWentBackward } from './coverImage.js?v=57';
 import { loadTags } from './tagPicker.js?v=53';
 
 export { resetPreloadDirection, markWentBackward };
