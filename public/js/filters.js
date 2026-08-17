@@ -53,7 +53,7 @@ export function buildFilters(){
 
     // vn-level check above just says an English release exists, completeness is only
     // tracked per-release, hence the separate nested filter. released<=today here too,
-    // same reasoning as the vn-level one above but aimed at the release itself: without
+    // same reasoning as the vn-level one above but aimed at the release itself. Without
     // it, a release that's still just announced (rtype and language already set, but not
     // actually out) satisfies "complete non-MTL English release" on a technicality.
     const releaseLang = ["lang","=","en"];
@@ -95,7 +95,7 @@ export function buildFilters(){
   }
 
   // All 5 checked means the same thing as none checked ("don't care"), matches the D1
-  // path's own reasoning: a VN with no length category set never matches any of the 5
+  // path's own reasoning. A VN with no length category set never matches any of the 5
   // clauses below, so filtering on all 5 anyway would still exclude it, even though
   // checking every box reads as "show me everything" to whoever's looking at the form.
   if(state.lengths.size && state.lengths.size < 5){

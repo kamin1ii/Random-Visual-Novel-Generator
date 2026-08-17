@@ -97,7 +97,7 @@ async function loadInitialPick(){
     if(useVndb){
       // tag 214 = Nukige, excluded server-side so this doesn't need a pool to filter
       // locally, one candidate is enough since VNDB already guarantees it isn't nukige.
-      // released<=today for the same reason buildFilters() always includes it: a starter
+      // released<=today for the same reason buildFilters() always includes it. A starter
       // pick shouldn't ever be something that isn't out yet.
       const todayStr = new Date().toISOString().slice(0, 10);
       const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"], ["released","<=",todayStr], ["tag","!=",[214,2,0]]];

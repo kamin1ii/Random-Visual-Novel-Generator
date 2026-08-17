@@ -44,7 +44,7 @@ function preloadImages(vns){
   });
 }
 
-// Debounced: rapid navigation (holding an arrow key, spam-clicking Next) would otherwise
+// Debounced. Rapid navigation (holding an arrow key, spam-clicking Next) would otherwise
 // queue a fresh preload scan on every single step passed through, each one requesting up
 // to 10 images that get abandoned the instant the next step fires anyway. Collapsing this
 // to one scan, for wherever navigation actually settles, cuts a lot of wasted requests to
@@ -101,7 +101,7 @@ function isReadyToShow(vn){
   return !!(img && img.complete && img.naturalWidth > 0);
 }
 
-// Debounced the same way as preloadAround, and for the same reason: only applies to the
+// Debounced the same way as preloadAround, and for the same reason. Only applies to the
 // case that actually costs a network request (an uncached cover). A cover that's already
 // preloaded (the common case for normal browsing) skips this and loads instantly, nothing
 // to collapse there since no request is being made in the first place.
@@ -138,7 +138,7 @@ export function showCover(vn, isRetry){
   // navigating fast enough to briefly hit the image proxy's rate limit, there's no way
   // to tell which from here (that would need switching from <img src> to fetch-based
   // loading, more complexity than this is worth). The retry below covers the rate-limit
-  // case without needing to actually detect it: if that's what happened, retrying after
+  // case without needing to actually detect it. If that's what happened, retrying after
   // the window passes succeeds, if the cover genuinely doesn't exist, it just fails
   // quietly again and stops there, isRetry prevents this from looping forever.
   function showLoadFailure(){

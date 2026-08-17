@@ -1,4 +1,4 @@
-// The /img/* route: serves VN cover art from a local mirror of VNDB's cover images
+// The /img/* route serves VN cover art from a local mirror of VNDB's cover images
 // (synced by db/refresh-vndb-db.mjs from VNDB's own rsync feed), falling back to an
 // on-demand fetch for anything not in the mirror yet, either a VN added after the last
 // refresh or, more commonly, a cover VNDB has since changed to a different image than
@@ -6,12 +6,12 @@
 // data directly, so its image URLs are only ever as stale as VNDB's live cover, not our
 // periodic snapshot). That fetch gets cached to disk too, so it's only ever fetched once.
 //
-// Two checks before anything is served: the key must match VNDB's real cover-path shape,
+// Two checks before anything is served. The key must match VNDB's real cover-path shape,
 // and cache-miss fallback requests are rate-limited per IP. There's deliberately no check
 // that the key belongs to a VN in our own database, that would reject real, current VNDB
 // covers whenever they've drifted from our last snapshot, exactly the live-API mode's
 // reason to exist. Serving any real VNDB cover matching the filename shape is an
-// acceptable trade here: images are local disk now, not metered storage, cache misses are
+// acceptable trade here. Images are local disk now, not metered storage, cache misses are
 // already rate-limited, and everything servable is still real VNDB content, never
 // caller-supplied bytes.
 
