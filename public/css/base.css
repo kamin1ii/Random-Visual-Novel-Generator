@@ -28,21 +28,21 @@ body{
   display:flex;
   flex-direction:column;
   align-items:center;
-  padding:28px 20px 50px;
+  padding:16px 20px 40px;
 }
 
 .masthead{
-  text-align:center;margin-bottom:28px;
-  padding-bottom:20px;
+  text-align:center;margin-bottom:14px;
+  padding-bottom:12px;
   border-bottom:1px solid var(--panel-edge);
-  width:100%;max-width:1320px; /* matches .layout's width so the divider spans the same line as the content below */
+  width:100%;max-width:1360px; /* matches .layout's width so the divider spans the same line as the content below */
 }
 .masthead h1{
   font-family:'Cormorant Garamond',serif;
   font-weight:700;
   font-style:italic;
-  font-size:clamp(26px,5vw,36px);
-  margin:6px 0 6px;
+  font-size:clamp(22px,4vw,32px);
+  margin:4px 0 4px;
 }
 .masthead p{font-size:13px;color:var(--muted);margin:0;}
 
