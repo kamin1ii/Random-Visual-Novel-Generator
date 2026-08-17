@@ -186,7 +186,7 @@ async function resolveArchivePath(){
 // Unpacks just the tables this site needs, returns the dump's own timestamp.
 function extractDumpTables(archivePath){
   console.log('Extracting needed tables...');
-  execSync(`tar --zstd -xf "${archivePath}" -C "${WORK_DIR}" db/vn db/vn_titles db/tags_vn db/tags_parents db/images db/releases db/releases_vn db/releases_titles db/releases_platforms TIMESTAMP`, { stdio: 'inherit' });
+  execSync(`tar --zstd -xf "${archivePath}" -C "${WORK_DIR}" db/vn db/vn_titles db/tags db/tags_vn db/tags_parents db/images db/releases db/releases_vn db/releases_titles db/releases_platforms TIMESTAMP`, { stdio: 'inherit' });
 
   const dumpTimestamp = readFileSync(path.join(WORK_DIR, 'TIMESTAMP'), 'utf-8').trim();
   console.log(`  dump timestamp: ${dumpTimestamp}`);
@@ -262,6 +262,21 @@ function resolveVnTitles(vnById){
   }
 }
 
+// tag id -> defaultspoil (VNDB's own fallback spoiler level for a tag when nobody has
+// explicitly voted a spoiler rating on it for a given VN, most tags default to 0 but not
+// all, e.g. "Completely Unavoidable Heroine Death" defaults to 2, it's inherently a major
+// spoiler by definition even before anyone rates it as one). See buildVnTagsWithHierarchy.
+function buildDefaultSpoilByTagId(){
+  console.log('Parsing tags (for the defaultspoil fallback)...');
+  const tagRows = parseTSV(path.join(WORK_DIR, 'db/tags'), 'tags');
+  const defaultSpoilByTagId = new Map();
+  for(const r of tagRows){
+    const [id, , defaultspoil] = r;
+    defaultSpoilByTagId.set(id.replace(/^\D+/, ''), parseInt(defaultspoil, 10) || 0);
+  }
+  return defaultSpoilByTagId;
+}
+
 // Aggregates thousands of individual per user tag votes down into one (vn, tag) -> vote/
 // spoiler summary, kept only if the community consensus average vote is positive.
 function aggregateTagVotes(vnById){
@@ -299,7 +314,7 @@ function aggregateTagVotes(vnById){
 // so without this filter almost every VN ends up with several of these headers stored
 // alongside its real tags, each rendering client side as "Unknown tag" since they're
 // deliberately absent from tags.json (see syncTagNames).
-function buildVnTagsWithHierarchy(tagAgg, metaTagIds){
+function buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId){
   console.log('Parsing tags_parents (tag hierarchy)...');
   const tagParentRows = parseTSV(path.join(WORK_DIR, 'db/tags_parents'), 'tags_parents');
   // id, parent, main
@@ -335,15 +350,18 @@ function buildVnTagsWithHierarchy(tagAgg, metaTagIds){
     if(avgVote <= 0) continue;
     const [vid, tag] = key.split('|');
     // Matches VNDB's own tag_vn_calc() SQL function verbatim (code.blicky.net/yorhel/vndb,
-    // sql/func.sql), not a plain round-to-nearest: CASE WHEN count(spoiler)=0 THEN
-    // min(defaultspoil) WHEN avg(spoiler)>1.3 THEN 2 WHEN avg(spoiler)>0.4 THEN 1 ELSE 0
-    // END. A plain Math.round (0.5/1.5 cutoffs) disagreed with VNDB's real (0.4/1.3)
-    // cutoffs often enough to leak spoiler-flagged tags through a "no spoilers" filter.
-    // defaultspoil itself (a per-tag setting, not per-vote) isn't in either dump this
-    // script pulls from, defaults to VNDB's own column default of 0 for the zero-vote case,
-    // same as before.
+    // sql/func.sql): CASE WHEN count(spoiler)=0 THEN min(defaultspoil) WHEN avg(spoiler)>1.3
+    // THEN 2 WHEN avg(spoiler)>0.4 THEN 1 ELSE 0 END. Confirmed against a real case: a tag
+    // can have votes on it (voteCount>0, it clears the avgVote<=0 skip above) while nobody
+    // has ever set an explicit spoiler rating on it for that VN (spoilerCount===0, spoiler
+    // is optional per vote), in which case VNDB doesn't default to "not a spoiler", it falls
+    // back to the tag's own defaultspoil, e.g. "Completely Unavoidable Heroine Death" is
+    // defaultspoil 2, a VN can only ever be tagged with it by revealing a major spoiler, so
+    // VNDB treats an unrated vote on it as spoiler level 2, not 0.
     const avgSpoiler = agg.spoilerCount ? agg.spoilerSum / agg.spoilerCount : 0;
-    const spoiler = agg.spoilerCount === 0 ? 0 : avgSpoiler > 1.3 ? 2 : avgSpoiler > 0.4 ? 1 : 0;
+    const spoiler = agg.spoilerCount === 0
+      ? (defaultSpoilByTagId.get(tag.replace(/^\D+/, '')) ?? 0)
+      : avgSpoiler > 1.3 ? 2 : avgSpoiler > 0.4 ? 1 : 0;
 
     for(const rawId of [tag, ...getAncestors(tag)]){
       // strips the leading "g" so this matches tags.json's bare integer id format exactly,
@@ -497,8 +515,9 @@ async function main(){
   const vnById = buildVnById(sexualByImageId);
   resolveVnTitles(vnById);
 
+  const defaultSpoilByTagId = buildDefaultSpoilByTagId();
   const tagAgg = aggregateTagVotes(vnById);
-  const vnTags = buildVnTagsWithHierarchy(tagAgg, metaTagIds);
+  const vnTags = buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId);
 
   deriveReleaseFlags(vnById);
 
