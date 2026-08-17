@@ -9,4 +9,8 @@
   .cover-wrap{width:100%;height:auto;aspect-ratio:3/4;}
   .content-col{padding:18px;}
   .synopsis{overflow-y:visible;max-height:none;}
+  /* The desktop sidebar has room to put score and votes side by side, a narrow phone
+     doesn't, especially with the slider in the mix, so this reverts to one full-width
+     field per row like every other field here. */
+  .field-row{flex-direction:column;gap:0;}
 }
