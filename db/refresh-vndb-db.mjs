@@ -181,7 +181,14 @@ function buildVnById(sexualByImageId){
   const vnById = new Map();
   for(const r of vnRows){
     const [id, image, c_image, olang, votecount, c_rating, , c_length, , lengthCategory, devstatus, , description] = r;
-    const resolvedImage = image || c_image; // c_image is a fallback VNDB itself uses when the primary image field is unset, skipping it was silently dropping covers for ~25% of VNs
+    // c_image ("computed") is VNDB's current canonical cover, image is the original
+    // reference and goes stale whenever a VN's cover is later changed, confirmed against
+    // the live API: wherever the two differ, the live API always serves c_image, never
+    // image. Affected ~45% of VNs (image and c_image differ), all silently showing a
+    // stale cover under the local DB path and a hard 404 under the live API path (whose
+    // image.url never matched our old image preferring image_path). Falls back to image
+    // only when c_image itself is unset.
+    const resolvedImage = c_image || image;
     vnById.set(id, {
       id,
       image_path: imageIdToPath(resolvedImage),
