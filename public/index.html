@@ -26,8 +26,8 @@
 <meta property="og:url" content="https://randomvn.org/">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="css/base.css?v=8">
-<link rel="stylesheet" href="css/layout.css?v=8">
-<link rel="stylesheet" href="css/filters.css?v=7">
+<link rel="stylesheet" href="css/layout.css?v=9">
+<link rel="stylesheet" href="css/filters.css?v=8">
 <link rel="stylesheet" href="css/card.css?v=5">
 <link rel="stylesheet" href="css/modal.css?v=2">
 <link rel="stylesheet" href="css/responsive.css?v=5">
@@ -129,7 +129,7 @@
       <div class="check-row">
         <input type="checkbox" id="hideSpoilerTagMatches" checked>
         <label for="hideSpoilerTagMatches">Don't match on spoiler tags</label>
-        <span class="info-icon" tabindex="0" title="Applies to include and exclude tags.">ⓘ</span>
+        <span class="info-icon" tabindex="0" role="img" aria-label="Applies to include and exclude tags.">ⓘ<span class="info-tooltip" aria-hidden="true">Applies to include and exclude tags.</span></span>
       </div>
     </div>
 
@@ -149,7 +149,7 @@
       <div class="check-row">
         <input type="checkbox" id="useVndbApi">
         <label for="useVndbApi">Use VNDB's live API instead</label>
-        <span class="info-icon" tabindex="0" title="Not truly random. VNDB has no random sample endpoint, so this scatters across a few pages.">ⓘ</span>
+        <span class="info-icon" tabindex="0" role="img" aria-label="Not truly random. VNDB has no random sample endpoint, so this scatters across a few pages.">ⓘ<span class="info-tooltip" aria-hidden="true">Not truly random. VNDB has no random sample endpoint, so this scatters across a few pages.</span></span>
       </div>
     </div>
     </div>
@@ -239,6 +239,6 @@
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=53"></script>
+<script type="module" src="js/main.js?v=54"></script>
 </body>
 </html>
