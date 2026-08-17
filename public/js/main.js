@@ -6,6 +6,9 @@ import { resetFilterUI } from './filterControls.js?v=53';
 import { makeTagPicker, renderChips } from './tagPicker.js?v=53';
 import { showCurrent, setStatus, renderActiveFilters, resetPreloadDirection, markWentBackward } from './render.js?v=53';
 import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=53';
+import { initInfoIcons } from './infoIcons.js?v=53';
+
+initInfoIcons();
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
