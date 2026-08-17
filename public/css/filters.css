@@ -59,6 +59,16 @@
 .check-row.subtle-check{margin-top:4px;margin-left:24px;opacity:.75;} /* nests the partial-English/MTL checkboxes under the one they depend on */
 .check-row.subtle-check label{font-size:12px;color:var(--muted);}
 
+/* Compact stand-in for a subnote paragraph, the description shows on hover/focus via the
+   native title attribute instead of always taking up its own line. Native rather than a
+   custom CSS tooltip specifically because this sits inside .sidebar-fields' scrolling
+   box, a custom absolutely-positioned tooltip risks being clipped by that scroll
+   boundary, a native one renders outside the page's layout entirely so that can't happen. */
+.info-icon{
+  font-size:12px;color:var(--muted);cursor:help;line-height:1;
+}
+.info-icon:hover, .info-icon:focus-visible{color:var(--gold);}
+
 .generate-btn{
   width:100%;
   font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.04em;

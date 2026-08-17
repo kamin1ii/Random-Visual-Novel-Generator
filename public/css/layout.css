@@ -28,8 +28,12 @@
   flex-direction:column;
 }
 
-.field-row{display:flex;gap:12px;}
+.field-row{display:flex;gap:18px;}
 .field-row .field{margin-bottom:11px;flex:1;min-width:0;}
+/* Without a visible boundary, the score slider's "Any"/value label sits flush against
+   the next field with nothing to mark where one field ends and the other begins, easy to
+   misread as belonging to the field beside it instead of the one above it. */
+.field-row .field + .field{border-left:1px solid var(--panel-edge);padding-left:18px;}
 
 /* Only the field list scrolls, the Generate/Reset buttons below are deliberately kept
    outside this scroll area so they're always visible without having to scroll down to
