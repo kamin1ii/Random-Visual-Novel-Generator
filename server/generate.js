@@ -31,7 +31,7 @@ function buildWhereClause(filters){
   // Baseline, always applied regardless of UI settings. released_year is only ever set
   // (db/refresh-vndb-db.mjs, deriveReleaseFlags) from a release that's actually out, not
   // an announced/TBA one, so NULL here means literally nothing about this VN has released
-  // yet, an announce-only or still-in-development title shouldn't turn up in a "generate
+  // yet, an announce only or still in development title shouldn't turn up in a "generate
   // a real thing to play" tool no matter what filters are set.
   const conditions = ['has_description = 1', 'released_year IS NOT NULL'];
   const params = [];
@@ -44,7 +44,7 @@ function buildWhereClause(filters){
 
   const minRating = parseFloat(filters.minRating) || 0;
   if(minRating > 0){
-    // clamped to 10, same fix as the live-API version, values below 10 aren't meaningfully distinct
+    // clamped to 10, same fix as the live API version, values below 10 aren't meaningfully distinct
     conditions.push('rating >= ?');
     params.push(Math.max(10, Math.round(minRating * 10)));
   }
@@ -55,7 +55,7 @@ function buildWhereClause(filters){
 
   if(filters.englishOnly){
     if(!filters.includeMTL){
-      conditions.push('has_en_lang = 1'); // vn-level non-MTL English existence, matches the live API's "languages" semantics
+      conditions.push('has_en_lang = 1'); // VN level non MTL English existence, matches the live API's "languages" semantics
     }
     conditions.push(filters.includePartialEnglish ? 'has_en_release_any = 1' : 'has_en_release_complete = 1');
   }
@@ -85,7 +85,7 @@ function buildWhereClause(filters){
   }
 
   // 0 keeps tag matches from firing off a tag that's only a spoiler for that specific
-  // title, 2 (checkbox off) matches at any spoiler level, same meaning as the live-API version.
+  // title, 2 (checkbox off) matches at any spoiler level, same meaning as the live API version.
   const spoilerCap = filters.hideSpoilerTagMatches === false ? 2 : 0;
 
   if(Array.isArray(filters.includeTags) && filters.includeTags.length){
@@ -164,7 +164,7 @@ function fetchTagsForVns(vnIds){
 // database is manually refreshed (once a day/week, not in real time), so the same filter
 // combination can safely reuse a cached count for a good while instead of repeating that
 // scan on every single generate. Was the Workers Cache API on Cloudflare, a plain
-// in-process Map here since there's only one server process now.
+// in process Map here since there's only one server process now.
 const COUNT_CACHE_SECONDS = 3600;
 const countCache = new Map();
 
@@ -180,9 +180,9 @@ function pruneExpiredCacheEntries(){
   }
 }
 
-// Real wall-clock cost per stage, the local equivalent of D1's rows_read. Since
+// Real wall clock cost per stage, the local equivalent of D1's rows_read. Since
 // better-sqlite3 runs synchronously on the main thread, elapsed time here IS the actual
-// work done, not an approximation. Logged server-side (visible via `journalctl -u rvng
+// work done, not an approximation. Logged server side (visible via `journalctl -u rvng
 // -f`) and returned to the client so "how intensive was this search" has a real answer
 // instead of a faked number.
 function timeMs(fn){
@@ -245,7 +245,7 @@ generateRouter.post('/api/generate', rateLimitMiddleware, express.json(), (req, 
     res.json({
       count,
       results: enrichedResults,
-      // Real wall-clock query time, the local equivalent of D1's rows_read cost metric.
+      // Real wall clock query time, the local equivalent of D1's rows_read cost metric.
       debug: { cacheHit, queryMs: Math.round(queryMs) },
     });
   }catch(err){

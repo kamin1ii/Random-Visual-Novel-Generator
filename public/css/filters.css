@@ -53,15 +53,15 @@
 }
 .len-toggle.active{background:rgba(226,178,86,.15);border-color:rgba(226,178,86,.4);color:var(--gold);}
 
-/* Shared by the sidebar's own checkboxes, plus the modal's and footer's reveal-related
+/* Shared by the sidebar's own checkboxes, plus the modal's and footer's reveal related
    checkboxes, all of which reuse this same row layout. */
 .check-row{display:flex;align-items:center;gap:8px;}
 .check-row label{margin:0;font-family:'Sora',sans-serif;font-size:13px;text-transform:none;letter-spacing:0;color:var(--text);}
-.check-row.subtle-check{margin-top:4px;margin-left:24px;opacity:.75;} /* nests the partial-English/MTL checkboxes under the one they depend on */
+.check-row.subtle-check{margin-top:4px;margin-left:24px;opacity:.75;} /* nests the partial English/MTL checkboxes under the one they depend on */
 .check-row.subtle-check label{font-size:12px;color:var(--muted);}
 
-/* Compact stand-in for a subnote paragraph, see infoIcons.js for why this is click/tap
-   driven rather than hover, and position:fixed rather than a plain absolutely-positioned
+/* Compact stand in for a subnote paragraph, see infoIcons.js for why this is click/tap
+   driven rather than hover, and position:fixed rather than a plain absolutely positioned
    tooltip. */
 .info-icon{
   font-size:12px;color:var(--muted);cursor:pointer;line-height:1;

@@ -28,7 +28,7 @@ app.use(imagesRouter);
 app.use(generateRouter);
 
 // Only public/ is ever reachable from here, server code and database tooling live
-// outside it entirely, so there's nothing to deny-list.
+// outside it entirely, so there's nothing to deny.
 app.use(express.static(PUBLIC_DIR));
 
 // Must be declared last, and keep all four params so Express recognizes it as an error handler.

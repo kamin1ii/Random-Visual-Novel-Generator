@@ -2,7 +2,7 @@ import { els } from './dom.js?v=55';
 import { state } from './state.js?v=53';
 import { renderChips } from './tagPicker.js?v=53';
 
-// Sidebar's own interactive behavior (slider label, toggle buttons, sub-checkboxes),
+// Sidebar's own interactive behavior (slider label, toggle buttons, sub checkboxes),
 // separate from filters.js which reads these same controls to build a query.
 
 els.minRating.addEventListener('input', () => {
@@ -42,7 +42,7 @@ els.excludeModeToggle.addEventListener('click', (e) => {
   btn.classList.add('active');
 });
 
-// partial-patch/MTL only mean anything if "full English release" is also checked
+// partial patch/MTL only mean anything if "full English release" is also checked
 function syncEnglishSubOptions(){
   const enabled = els.englishOnly.checked;
   els.includePartialEnglish.disabled = !enabled;
@@ -55,7 +55,7 @@ function syncEnglishSubOptions(){
 els.englishOnly.addEventListener('change', syncEnglishSubOptions);
 syncEnglishSubOptions();
 
-// doesn't touch the active-filters chips or reveal preference, main.js's Reset Filters
+// doesn't touch the active filter chips or reveal preference, main.js's Reset Filters
 // handler calls this alongside those separately
 export function resetFilterUI(){
   els.minRating.value = 0;
@@ -78,8 +78,8 @@ export function resetFilterUI(){
   // Cleared in place (length = 0), not reassigned (= []). tagPicker.js's closures
   // captured these exact array references at setup time, replacing them with brand new
   // arrays here would silently detach those closures from state, chips would still
-  // render correctly (same closure-held array) but buildFilters() would read the new,
-  // permanently-empty reference and never see anything added after a reset.
+  // render correctly (same closure held array) but buildFilters() would read the new,
+  // permanently empty reference and never see anything added after a reset.
   state.includeTags.length = 0;
   state.excludeTags.length = 0;
   if(hadNukigeExcluded) state.excludeTags.push({ id: 214, name: 'Nukige' });
@@ -90,8 +90,8 @@ export function resetFilterUI(){
   state.includeMode = 'and';
   state.excludeMode = 'or';
   // matched by data-mode value rather than a hardcoded index, since the two toggles
-  // don't have the same button order, and-first for include, or-first for exclude,
-  // the earlier index-based version activated whichever button was first regardless
+  // don't have the same button order, and first for include, or first for exclude,
+  // the earlier index based version activated whichever button was first regardless
   // of which mode that actually was, breaking the exclude toggle's visual state
   els.includeModeToggle.querySelectorAll('.len-toggle').forEach(b => b.classList.toggle('active', b.dataset.mode === 'and'));
   els.excludeModeToggle.querySelectorAll('.len-toggle').forEach(b => b.classList.toggle('active', b.dataset.mode === 'or'));

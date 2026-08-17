@@ -11,9 +11,9 @@ import { neverBlurIsEnabled } from './revealModal.js?v=58';
 //
 // vnId is passed through as a query param purely so the server can log a real title on a
 // cache miss, it has no effect on which file gets served, the path alone still determines
-// that. Passed separately from the path (rather than looked up server-side from it)
+// that. Passed separately from the path (rather than looked up server side from it)
 // because the path alone isn't a reliable way to find the VN, that's exactly the case on
-// a stale-cover miss, where no row in the local database has this path at all yet.
+// a stale cover miss, where no row in the local database has this path at all yet.
 const SITE_ORIGIN = 'https://randomvn.org';
 function proxiedImageUrl(vndbUrl, vnId){
   const path = new URL(vndbUrl).pathname.replace(/^\/+/, '');
@@ -44,16 +44,16 @@ function preloadImages(vns){
   });
 }
 
-// Debounced. Rapid navigation (holding an arrow key, spam-clicking Next) would otherwise
+// Debounced. Rapid navigation (holding an arrow key, spam clicking Next) would otherwise
 // queue a fresh preload scan on every single step passed through, each one requesting up
 // to 10 images that get abandoned the instant the next step fires anyway. Collapsing this
 // to one scan, for wherever navigation actually settles, cuts a lot of wasted requests to
-// the image proxy during a fast burst without affecting normal one-click-at-a-time browsing,
+// the image proxy during a fast burst without affecting normal one click at a time browsing,
 // where this fires almost immediately after the (isolated) click either way.
 let preloadDebounceTimer = null;
 const PRELOAD_DEBOUNCE_MS = 200;
 
-// Forward-only until the person actually navigates backward at least once, a fresh
+// Forward only until the person actually navigates backward at least once, a fresh
 // generate almost never gets browsed backward immediately, so preloading that direction
 // upfront was wasted requests against R2 for the common case. Reset per generate, not
 // per navigation step, see resetPreloadDirection below.
@@ -69,7 +69,7 @@ export function markWentBackward(){
 
 export function preloadAround(list, index, radius = 4){
   // A list of 1 (the startup pick) has no genuine neighbors, every offset would wrap
-  // back to the same single item, redundantly re-fetching the image already being shown.
+  // back to the same single item, redundantly fetching the image already being shown again.
   if(list.length <= 1) return;
   clearTimeout(preloadDebounceTimer);
   preloadDebounceTimer = setTimeout(() => {
@@ -91,7 +91,7 @@ export function preloadAround(list, index, radius = 4){
   }, PRELOAD_DEBOUNCE_MS);
 }
 
-// Bumped every render so a stale in-flight callback (a late load/error/timeout from a
+// Bumped every render so a stale in flight callback (a late load/error/timeout from a
 // few entries back) can check it's still current before touching anything.
 let renderToken = 0;
 const IMAGE_LOAD_TIMEOUT_MS = 10000;
@@ -136,8 +136,8 @@ export function showCover(vn, isRetry){
 
   // Shown on a load failure, this could be a genuinely missing cover, or it could be
   // navigating fast enough to briefly hit the image proxy's rate limit, there's no way
-  // to tell which from here (that would need switching from <img src> to fetch-based
-  // loading, more complexity than this is worth). The retry below covers the rate-limit
+  // to tell which from here (that would need switching from <img src> to fetch based
+  // loading, more complexity than this is worth). The retry below covers the rate limit
   // case without needing to actually detect it. If that's what happened, retrying after
   // the window passes succeeds, if the cover genuinely doesn't exist, it just fails
   // quietly again and stops there, isRetry prevents this from looping forever.
@@ -158,13 +158,13 @@ export function showCover(vn, isRetry){
     if(myToken !== renderToken) return; // superseded before this even fired
 
     // Reveal only ever happens from "load", never optimistically, even on a cache hit.
-    // A true hit fires this near-instantly so there's no visible delay, but it also means
+    // A true hit fires this near instantly so there's no visible delay, but it also means
     // a hit that isn't quite as instant as expected never shows a stale poster in the meantime.
     els.cover.onload = () => {
       if(myToken !== renderToken) return;
       clearTimeout(timeoutId);
       els.coverLoading.classList.remove('show');
-      if(isSensitive) els.cover.classList.add('sensitive'); // set while still no-anim, so it's correct before the fade-in starts
+      if(isSensitive) els.cover.classList.add('sensitive'); // set while still no-anim, so it's correct before the fade in starts
       void els.cover.offsetWidth;
       els.cover.classList.remove('no-anim');
       els.cover.classList.add('loaded');

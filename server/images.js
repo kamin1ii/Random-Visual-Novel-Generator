@@ -1,19 +1,19 @@
 // The /img/* route serves VN cover art from a local mirror of VNDB's cover images
 // (synced by db/refresh-vndb-db.mjs from VNDB's own rsync feed), falling back to an
-// on-demand fetch for anything not in the mirror yet, either a VN added after the last
+// on demand fetch for anything not in the mirror yet, either a VN added after the last
 // refresh or, more commonly, a cover VNDB has since changed to a different image than
-// what our last refresh captured (the frontend's VNDB-live-API mode shows VNDB's current
+// what our last refresh captured (the frontend's VNDB live API mode shows VNDB's current
 // data directly, so its image URLs are only ever as stale as VNDB's live cover, not our
 // periodic snapshot). That fetch gets cached to disk too, so it's only ever fetched once.
 //
-// Two checks before anything is served. The key must match VNDB's real cover-path shape,
-// and cache-miss fallback requests are rate-limited per IP. There's deliberately no check
+// Two checks before anything is served. The key must match VNDB's real cover path shape,
+// and cache miss fallback requests are rate limited per IP. There's deliberately no check
 // that the key belongs to a VN in our own database, that would reject real, current VNDB
-// covers whenever they've drifted from our last snapshot, exactly the live-API mode's
+// covers whenever they've drifted from our last snapshot, exactly the live API mode's
 // reason to exist. Serving any real VNDB cover matching the filename shape is an
 // acceptable trade here. Images are local disk now, not metered storage, cache misses are
-// already rate-limited, and everything servable is still real VNDB content, never
-// caller-supplied bytes.
+// already rate limited, and everything servable is still real VNDB content, never
+// caller supplied bytes.
 
 import express from 'express';
 import fs from 'node:fs';
@@ -25,7 +25,7 @@ import { getClientIp, imageRequestAllowed, imageMissAllowed } from './rateLimit.
 // Purely for the console log below, has no effect on what gets served. The image path
 // alone isn't a reliable way to find the VN on a miss, that's exactly the case when the
 // miss is caused by our database being stale, so the frontend passes the VN id it already
-// has instead of this trying to reverse-lookup a possibly-stale image_path.
+// has instead of this trying to reverse lookup a possibly stale image_path.
 const titleByIdStmt = db.prepare('SELECT title FROM vn WHERE id = ?');
 
 const COVERS_DIR = process.env.COVERS_DIR || '/opt/rvng/data/covers';

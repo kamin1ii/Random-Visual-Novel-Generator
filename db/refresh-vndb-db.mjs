@@ -1,14 +1,14 @@
 // refresh-vndb-db.mjs
 //
 // Downloads the latest VNDB database dump, parses the tables the site actually needs,
-// aggregates the raw per-user tag votes into a single consensus per (VN, tag) pair,
-// derives English-release-status and release-year info from the releases tables, and
-// loads everything into the site's local SQLite database. Meant to be re-run whenever
-// you want fresh data, safe to run repeatedly, each run replaces the previous data
-// entirely inside one transaction (so a failed run doesn't leave a half-loaded database).
+// aggregates the raw per user tag votes into a single consensus per (VN, tag) pair,
+// derives English release status and release year info from the releases tables, and
+// loads everything into the site's local SQLite database. Meant to be run again whenever
+// fresh data is wanted, safe to run repeatedly, each run replaces the previous data
+// entirely inside one transaction (so a failed run doesn't leave a half loaded database).
 //
 // This does NOT touch server.js or the live site by itself, it only populates the
-// database file. Run this on the VPS itself (it writes straight to the on-disk sqlite
+// database file. Run this on the VPS itself (it writes straight to the on disk sqlite
 // file, no network database round trip).
 //
 // Setup, run once on the VPS.
@@ -17,7 +17,7 @@
 //   2. npm install (installs better-sqlite3, from vnpicker's package.json)
 //   3. sqlite3 /opt/rvng/data/randomvn.db < schema.sql   (once, before the first run)
 //
-// Then, any time you want to refresh.
+// Then, any time a refresh is needed.
 //   DB_PATH=/opt/rvng/data/randomvn.db node refresh-vndb-db.mjs
 // (DB_PATH defaults to /opt/rvng/data/randomvn.db if unset, matching server.js)
 //
@@ -41,7 +41,7 @@ const TAGS_DUMP_URL = 'https://dl.vndb.org/dump/vndb-tags-latest.json.gz';
 const WORK_DIR = path.join(__dirname, 'vndb-dump-work');
 // Persists across runs (unlike WORK_DIR, wiped every run). VNDB only rebuilds these dumps
 // once a day (~08:00 GMT), the "latest" URLs 307-redirect to a dated filename each time
-// (vndb-db-2026-08-17.tar.zst), so re-running this script more than once on the same day,
+// (vndb-db-2026-08-17.tar.zst), so running this script again more than once on the same day,
 // as happens often while chasing down a data bug, doesn't need to pull the ~180MB archive
 // again for identical content, just resolve the redirect (a HEAD request) and reuse the
 // file already sitting here if its name matches.
@@ -64,10 +64,10 @@ function parseTSV(filePath, label){
   return rows;
 }
 
-// PostgreSQL's plain-text COPY/dump format escapes real newlines, tabs, and backslashes
-// within a field's own content as these two-character sequences, since the file format
+// PostgreSQL's plain text COPY/dump format escapes real newlines, tabs, and backslashes
+// within a field's own content as these two character sequences, since the file format
 // itself uses real newlines and tabs as row/column separators. Without unescaping this,
-// a multi-paragraph description's real paragraph breaks show up as the literal text
+// a multi paragraph description's real paragraph breaks show up as the literal text
 // "\n\n" instead of an actual newline character.
 function unescapeTsvField(val){
   return val
@@ -125,12 +125,12 @@ async function downloadWithProgress(url, destPath){
   await finished(fileStream);
 }
 
-// Mirrors VNDB's own cover-image rsync feed locally, this is the tool VNDB explicitly
+// Mirrors VNDB's own cover image rsync feed locally, this is the tool VNDB explicitly
 // documents for bulk/incremental syncing ("prefer incremental updates over redownloading
-// a full copy"), rsync's own diffing means a re-run only transfers what actually changed
+// a full copy"), rsync's own diffing means running it again only transfers what actually changed
 // instead of tens of thousands of individual HTTP requests. --del removes local files
 // VNDB has since removed, keeping the mirror exact. server.js's /img/* route still has an
-// on-demand fetch-and-cache fallback for anything this sync doesn't have yet (a VN VNDB
+// on demand fetch and cache fallback for anything this sync doesn't have yet (a VN VNDB
 // adds after this run), that's the safety net, not the primary path.
 function syncCoverImages(){
   console.log('Syncing cover images from VNDB\'s rsync mirror...');
@@ -138,22 +138,22 @@ function syncCoverImages(){
   mkdirSync(target, { recursive: true });
   execSync(`rsync -rt --del --info=progress2 ${VNDB_RSYNC_COVERS} "${target}"`, { stdio: 'inherit' });
   // This runs as root over SSH, but the live server runs as the unprivileged rvng user and
-  // needs write access here too, not just read, it's also where /img/*'s on-demand
-  // fetch-and-cache fallback writes newly-fetched covers. chown rather than a world-writable
+  // needs write access here too, not just read, it's also where /img/*'s on demand
+  // fetch and cache fallback writes newly fetched covers. chown rather than a world writable
   // chmod, so only the actual app user gets write access, not literally everyone.
   execSync(`chown -R rvng:rvng "${COVERS_DIR}"`);
   console.log('  cover image sync complete.');
 }
 
-// public/tags.json is the client-side tag name/search dump (render.js resolves vn_tags'
+// public/tags.json is the client side tag name/search dump (render.js resolves vn_tags'
 // bare ids against it, tagPicker.js searches it for the include/exclude pickers), separate
-// from the main VNDB dump above and small enough (a few hundred KB) to just re-fetch
+// from the main VNDB dump above and small enough (a few hundred KB) to just fetch it
 // whole every run rather than diffing. Without this running alongside the main refresh,
 // tags.json silently drifts behind the VN data it's meant to label. Any tag VNDB adds (or
 // a VN gets newly tagged with) after tags.json was last built resolves to "Unknown tag"
-// client-side even though the VN's own row correctly has that tag id.
-// meta:true entries are category-header rows ("Theme", "Sexual Content" as a group), not
-// real tags any VN is ever tagged with, filtered out the same way the original one-time
+// client side even though the VN's own row correctly has that tag id.
+// meta:true entries are category header rows ("Theme", "Sexual Content" as a group), not
+// real tags any VN is ever tagged with, filtered out the same way the original one time
 // snapshot this replaces already did. Returns the excluded ids too, buildVnTagsWithHierarchy
 // below needs that same set to stop them from being stored against VNs in the first place.
 async function syncTagNames(){
@@ -217,7 +217,7 @@ function extractDumpTables(archivePath){
   return dumpTimestamp;
 }
 
-// image id -> the 0-2 explicit-cover score, used below to fill in each VN's `sexual` field.
+// image id -> the 0-2 explicit cover score, used below to fill in each VN's `sexual` field.
 function buildSexualByImageId(){
   console.log('Parsing images (for the explicit-cover flag)...');
   const imageRows = parseTSV(path.join(WORK_DIR, 'db/images'), 'images');
@@ -241,8 +241,8 @@ function buildVnById(sexualByImageId){
     // reference and goes stale whenever a VN's cover is later changed, confirmed against
     // the live API. Wherever the two differ, the live API always serves c_image, never
     // image. Affected ~45% of VNs (image and c_image differ), all silently showing a
-    // stale cover under the local-DB path and a hard 404 under the live-API path (whose
-    // image.url never matched our old image-preferring image_path). Falls back to image
+    // stale cover under the local DB path and a hard 404 under the live API path (whose
+    // image.url never matched our old image preferring image_path). Falls back to image
     // only when c_image itself is unset.
     const resolvedImage = c_image || image;
     vnById.set(id, {
@@ -308,18 +308,18 @@ function buildDefaultSpoilByTagId(){
   return defaultSpoilByTagId;
 }
 
-// Aggregates thousands of individual per-user tag votes down into one (vn, tag) -> vote/
+// Aggregates thousands of individual per user tag votes down into one (vn, tag) -> vote/
 // spoiler summary. Matches VNDB's own tag_vn_calc() (code.blicky.net/yorhel/vndb,
 // sql/func.sql) on two points that weren't obvious from behavior alone.
 //   - Only "ignore" excludes a vote from the aggregate. "lie" doesn't. VNDB's query only
 //     filters on "NOT tv.ignore", the lie flag is carried through into an aggregate boolean
-//     column of its own (majority-flagged-as-lie), it never removes a voter's vote/spoiler
-//     contribution. This script was excluding lie-flagged votes entirely, which could both
-//     wrongly drop a tag (denominator shrinks, changing the sign-sum below) and wrongly
+//     column of its own (majority flagged as lie), it never removes a voter's vote/spoiler
+//     contribution. This script was excluding lie flagged votes entirely, which could both
+//     wrongly drop a tag (denominator shrinks, changing the sign sum below) and wrongly
 //     skew its spoiler level.
 //   - Kept only if signSum > 0 (see buildVnTagsWithHierarchy), not average vote > 0. VNDB's
 //     real inclusion test is "HAVING SUM(sign(tv.vote)) > 0", a net count of positive vs
-//     negative voters, not the magnitude-weighted mean this script was using. A tag with a
+//     negative voters, not the magnitude weighted mean this script was using. A tag with a
 //     few strongly negative votes and many mildly positive ones can have avg <= 0 while
 //     still having more people vote it up than down, VNDB keeps that tag, this script was
 //     dropping it. Found via a real case, a title clearly tagged "Nukige" on VNDB's live
@@ -345,19 +345,19 @@ function aggregateTagVotes(vnById){
 
 // Parses the tag hierarchy and expands the aggregated direct votes into the final
 // vn_tags list, propagating each tag up to all of its ancestors. VNDB's live tag search
-// also matches any ancestor of a directly-applied tag, filtering for "Fantasy" matches a
+// also matches any ancestor of a directly applied tag, filtering for "Fantasy" matches a
 // VN only tagged with a more specific child like "Fictional Beings" too, it doesn't
 // require a direct vote on "Fantasy" itself. Without this, local results systematically
 // undercount the live API for any tag that has children, worse for broad parent tags.
 // Every ancestor gets an implicit entry alongside the direct one, deduped against direct
 // entries by keeping whichever spoiler level is least restrictive.
 //
-// metaTagIds excludes VNDB's category-header tags (id 1 "Theme", 20 "Character", 1107
+// metaTagIds excludes VNDB's category header tags (id 1 "Theme", 20 "Character", 1107
 // "Story", etc, 65 total) from that ancestor walk. These aren't real tags a VN is ever
 // directly voted on, they're group headers that every real tag's ancestor chain
 // eventually climbs into (nearly every "cont" tag's chain reaches "Theme" at the root),
 // so without this filter almost every VN ends up with several of these headers stored
-// alongside its real tags, each rendering client-side as "Unknown tag" since they're
+// alongside its real tags, each rendering client side as "Unknown tag" since they're
 // deliberately absent from tags.json (see syncTagNames).
 function buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId){
   console.log('Parsing tags_parents (tag hierarchy)...');
@@ -408,7 +408,7 @@ function buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId){
       : avgSpoiler > 1.3 ? 2 : avgSpoiler > 0.4 ? 1 : 0;
 
     for(const rawId of [tag, ...getAncestors(tag)]){
-      // strips the leading "g" so this matches tags.json's bare-integer id format exactly,
+      // strips the leading "g" so this matches tags.json's bare integer id format exactly,
       // the same mismatch already found once in render.js, fixed here at the source instead
       const bareTagId = rawId.replace(/^\D+/, '');
       if(metaTagIds.has(parseInt(bareTagId, 10))) continue;
@@ -428,15 +428,15 @@ function buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId){
 }
 
 // Fills in released_year/languages/platforms/has_en_* on vnById in place, derived from
-// the releases tables (release year and English-release status are release-level facts
-// in VNDB's schema, not vn-level, so they have to be rolled up here).
+// the releases tables (release year and English release status are release level facts
+// in VNDB's schema, not VN level, so they have to be rolled up here).
 function deriveReleaseFlags(vnById){
   console.log('Parsing releases...');
   const releaseRows = parseTSV(path.join(WORK_DIR, 'db/releases'), 'releases');
   // id, gtin, olang, released, voiced, reso_x, reso_y, minage, ani_*, has_ero, patch, freeware, uncensored, official, catalog, notes, engine
   const releaseYearById = new Map(); // release id -> year (integer) or null
-  // VNDB's own c_languages formula (the vn-level "languages" aggregate) requires
-  // released <= today, excluding announced-but-unreleased titles. VNDB represents those
+  // VNDB's own c_languages formula (the VN level "languages" aggregate) requires
+  // released <= today, excluding announced but unreleased titles. VNDB represents those
   // with a sentinel date far in the future (e.g. 99999999, "TBA"), which the 8-digit regex
   // below happily matches, so without this a release that's only been announced (not
   // actually out yet) could still count as "available in English", and its sentinel date
@@ -499,28 +499,28 @@ function deriveReleaseFlags(vnById){
 
     const enInfo = englishReleaseInfo.get(relId);
     if(enInfo){
-      // Matches VNDB's own c_languages formula for this field, non-MTL, rtype isn't
+      // Matches VNDB's own c_languages formula for this field, non MTL, rtype isn't
       // 'trial', and the release has actually come out (not just announced). Confirmed
       // against a real case, a VN's only English release was an unofficial patch still
-      // "in-progress" per its own notes, released=TBA, whose rtype (complete) and non-MTL
+      // "in-progress" per its own notes, released=TBA, whose rtype (complete) and non MTL
       // English title otherwise looked identical to a real release, VNDB correctly leaves
       // it out of vn.languages for exactly this reason, this script wasn't checking either
       // the release date or trial status at all before.
       if(enInfo.hasEnNonMtl && rtype !== 'trial' && releaseIsReleasedById.get(relId)) vn.has_en_lang = 1;
       if(enInfo.hasMtl) vn.has_en_mtl = 1;
       // Gated on hasEnNonMtl, not hasEn. Confirmed empirically against the live API that
-      // VNDB's own release-level ["lang","=","en"] filter excludes MTL too, the same way
-      // the vn-level "languages" field does (querying ["release","=",["and",["lang","=","en"],
+      // VNDB's own release level ["lang","=","en"] filter excludes MTL too, the same way
+      // the VN level "languages" field does (querying ["release","=",["and",["lang","=","en"],
       // ["rtype","=","complete"]]] for a VN whose only "complete" release's English title is
-      // machine-translated, with a separate non-MTL release that's only "partial", returns
+      // machine translated, with a separate non MTL release that's only "partial", returns
       // zero results). Gating on hasEn instead let a VN through as a false "full English
-      // release" whenever completeness and non-MTL English came from two DIFFERENT releases
-      // rather than the same one, e.g. a partial non-MTL patch plus an unrelated complete
+      // release" whenever completeness and non MTL English came from two DIFFERENT releases
+      // rather than the same one, e.g. a partial non MTL patch plus an unrelated complete
       // MTL release, neither of which is actually what "Full English release" means.
       //
       // Also requires releaseIsReleasedById here, same as has_en_lang above. This is a
-      // deliberate site policy choice, not a VNDB-parity fix like the rest of this
-      // function. VNDB's own release-level ["lang","=","en"] filter does NOT check
+      // deliberate site policy choice, not a VNDB parity fix like the rest of this
+      // function. VNDB's own release level ["lang","=","en"] filter does NOT check
       // released<=today (confirmed empirically, a TBA release with rtype=complete still
       // matched it live), so this makes local results stricter than VNDB's own API on
       // purpose. "Full English release" checked should mean the English release is
@@ -535,7 +535,7 @@ function deriveReleaseFlags(vnById){
 }
 
 // Replaces the vn/vn_tags tables and the dump timestamp in one transaction, so a failed
-// run never leaves the live database half-loaded.
+// run never leaves the live database half loaded.
 function loadDatabase(vnById, vnTags, dumpTimestamp){
   console.log(`Opening database: ${DB_PATH}`);
   const db = new Database(DB_PATH);

@@ -2,9 +2,9 @@ import { state } from './state.js?v=53';
 import { els } from './dom.js?v=55';
 import { LENGTH_LABELS } from './constants.js?v=53';
 
-// Raw UI state for the D1-backed path, separate from buildFilters() below (which builds
-// VNDB's specific nested JSON filter format for the live-API path). The Worker does its
-// own translation into SQL server-side, so this just needs to hand over the same
+// Raw UI state for the D1 backed path, separate from buildFilters() below (which builds
+// VNDB's specific nested JSON filter format for the live API path). The Worker does its
+// own translation into SQL server side, so this just needs to hand over the same
 // underlying values buildFilters() already reads, not VNDB's filter syntax.
 export function gatherFilterState(){
   return {
@@ -26,9 +26,9 @@ export function gatherFilterState(){
 }
 
 export function buildFilters(){
-  // VNDB represents an announced-but-unreleased title's date as the literal string "TBA",
+  // VNDB represents an announced but unreleased title's date as the literal string "TBA",
   // which sorts after every real date, so "released <= today" cleanly excludes it (and
-  // any real future-dated release) without needing to special-case that string. Applied
+  // any real release with a future date) without needing to treat that string as a special case. Applied
   // unconditionally, not tied to any checkbox, a "generate a real thing to play" tool
   // shouldn't turn up something that isn't out yet no matter what filters are set.
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -47,15 +47,15 @@ export function buildFilters(){
     const includeMTL = els.includeMTL.checked;
 
     if(!includeMTL){
-      // vn-level "languages" already excludes MTL by definition, so this alone keeps MTL-only titles out
+      // VN level "languages" already excludes MTL by definition, so this alone keeps MTL only titles out
       clauses.push(["lang","=","en"]);
     }
 
-    // vn-level check above just says an English release exists, completeness is only
-    // tracked per-release, hence the separate nested filter. released<=today here too,
-    // same reasoning as the vn-level one above but aimed at the release itself. Without
+    // VN level check above just says an English release exists, completeness is only
+    // tracked per release, hence the separate nested filter. released<=today here too,
+    // same reasoning as the VN level one above but aimed at the release itself. Without
     // it, a release that's still just announced (rtype and language already set, but not
-    // actually out) satisfies "complete non-MTL English release" on a technicality.
+    // actually out) satisfies "complete non MTL English release" on a technicality.
     const releaseLang = ["lang","=","en"];
     const releaseReleased = ["released","<=",todayStr];
     clauses.push(["release","=", includePartial
@@ -70,7 +70,7 @@ export function buildFilters(){
 
   // 0 keeps tag matches from firing off a tag that's flagged as a spoiler for that
   // specific title, matching purely because of one would itself leak the spoiler, since
-  // the card's own tag display already hides spoiler-flagged tags from view. 2 (checkbox
+  // the card's own tag display already hides spoiler flagged tags from view. 2 (checkbox
   // off) matches at any spoiler level, needed for tags that mostly only apply at a
   // nonzero level in the first place.
   const spoilerCap = els.hideSpoilerTagMatches.checked ? 0 : 2;
@@ -106,7 +106,7 @@ export function buildFilters(){
   return clauses.length > 1 ? ["and", ...clauses] : clauses[0];
 }
 
-// mirrors buildFilters but for the plain-language chips above the card, kept in sync by hand
+// mirrors buildFilters but for the plain language chips above the card, kept in sync by hand
 export function describeFilters(){
   const parts = [];
 

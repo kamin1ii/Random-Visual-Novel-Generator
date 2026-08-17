@@ -127,7 +127,7 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
     if(q.length < 1){ close(); statusEl.textContent = ''; return; }
     statusEl.textContent = '…';
     statusEl.className = 'tag-status spin';
-    // local search, near-instant once tags.json has loaded, no debounce needed
+    // local search, near instant once tags.json has loaded, no debounce needed
     loadTags().then(allTags => {
       if(inputEl.value.trim() !== q) return; // stale, a newer keystroke has since fired
       results = searchTags(allTags, q);
@@ -169,7 +169,7 @@ export function makeTagPicker(inputEl, suggestEl, statusEl, listArr, chipsEl, ch
   // Repositions on scroll instead of closing, so the dropdown stays anchored to the
   // input. capture:true catches both page scroll and the sidebar's internal scroll,
   // since scroll doesn't bubble to window normally. Excludes the dropdown's own
-  // results-list scroll. rAF-throttled since scroll can fire faster than repaints.
+  // results list scroll. rAF throttled since scroll can fire faster than repaints.
   let scrollRaf = null;
   window.addEventListener('scroll', (e) => {
     if(suggestEl.contains(e.target)) return;

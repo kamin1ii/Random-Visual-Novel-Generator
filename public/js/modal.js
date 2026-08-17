@@ -1,6 +1,6 @@
-// Shared show/close/isOpen/backdrop-click wiring for every modal on the site. An
-// optional cancelBtn turns it into a two-way Cancel/Confirm choice (revealModal,
-// neverBlurModal), omitting it makes it a single-button dismiss (noResultsModal,
+// Shared show/close/isOpen/backdrop click wiring for every modal on the site. An
+// optional cancelBtn turns it into a two way Cancel/Confirm choice (revealModal,
+// neverBlurModal), omitting it makes it a single button dismiss (noResultsModal,
 // rateLimitModal, vndbApiModal), everything else about the two shapes is identical.
 export function makeModal(modalEl, confirmBtn, { cancelBtn, onOpen, onConfirm } = {}){
   function close(){ modalEl.classList.remove('open'); }

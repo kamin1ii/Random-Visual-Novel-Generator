@@ -48,10 +48,10 @@ body{
 
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
 
-/* Generic native form-control resets. Used across more than one component (sidebar
+/* Generic native form control resets. Used across more than one component (sidebar
    filters, the reveal modal, the footer checkbox), so they live here rather than in
    any single component's own file. */
-/* min-width:0 matters here, not just boilerplate. A range input has a browser-default
+/* min-width:0 matters here, not just boilerplate. A range input has a browser default
    intrinsic width, and flex items don't shrink below that on their own, so without this
    the slider silently overflows past its own row's padded boundary the moment that row
    gets narrower than the slider's default size, dragging whatever sits after it (the

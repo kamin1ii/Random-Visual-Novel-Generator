@@ -1,5 +1,5 @@
-// Single entry point for the whole Worker. Workers-with-static-assets doesn't have
-// Pages' automatic /functions routing, so this checks the path itself: /img/ goes to
+// Single entry point for the whole Worker. Workers with static assets doesn't have
+// Pages' automatic /functions routing, so this checks the path itself. /img/ goes to
 // the caching proxy, /api/ goes to the D1-backed list generator, everything else falls
 // through to env.ASSETS, the static site.
 
@@ -7,7 +7,7 @@ export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
 
-    // Done in code rather than a Cloudflare Redirect Rule: Redirect Rules can silently
+    // Done in code rather than a Cloudflare Redirect Rule. Redirect Rules can silently
     // fail to fire when their target is itself a Workers Custom Domain, this way is
     // guaranteed to run since it's the first thing the Worker does.
     if(url.hostname === 'www.randomvn.org'){
@@ -35,7 +35,7 @@ export default {
 const VNDB_IMAGE_HOST = 'https://t.vndb.org'; // confirmed via testing, not documented anywhere official
 
 async function handleImageProxy(url, env, ctx){
-  // path only, never a full URL, so the upstream domain never appears in a client-visible request
+  // path only, never a full URL, so the upstream domain never appears in a client visible request
   const key = url.pathname.slice('/img/'.length);
 
   if(!key){
@@ -116,7 +116,7 @@ function buildWhereClause(filters){
 
   const minRating = parseFloat(filters.minRating) || 0;
   if(minRating > 0){
-    // clamped to 10, same fix as the live-API version, values below 10 aren't meaningfully distinct
+    // clamped to 10, same fix as the live API version, values below 10 aren't meaningfully distinct
     conditions.push('rating >= ?');
     params.push(Math.max(10, Math.round(minRating * 10)));
   }
@@ -127,7 +127,7 @@ function buildWhereClause(filters){
 
   if(filters.englishOnly){
     if(!filters.includeMTL){
-      conditions.push('has_en_lang = 1'); // vn-level non-MTL English existence, matches the live API's "languages" semantics
+      conditions.push('has_en_lang = 1'); // VN level non MTL English existence, matches the live API's "languages" semantics
     }
     conditions.push(filters.includePartialEnglish ? 'has_en_release_any = 1' : 'has_en_release_complete = 1');
   }
@@ -152,7 +152,7 @@ function buildWhereClause(filters){
   }
 
   // 0 keeps tag matches from firing off a tag that's only a spoiler for that specific
-  // title, 2 (checkbox off) matches at any spoiler level, same meaning as the live-API version.
+  // title, 2 (checkbox off) matches at any spoiler level, same meaning as the live API version.
   const spoilerCap = filters.hideSpoilerTagMatches === false ? 2 : 0;
 
   if(Array.isArray(filters.includeTags) && filters.includeTags.length){

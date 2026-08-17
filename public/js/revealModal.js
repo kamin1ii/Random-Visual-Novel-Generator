@@ -3,11 +3,11 @@ import { state } from './state.js?v=53';
 import { SENSITIVE_THRESHOLD } from './constants.js?v=53';
 import { makeModal } from './modal.js?v=1';
 
-// Self-contained "confirm before revealing explicit art" flow, kept separate from
+// Self contained "confirm before revealing explicit art" flow, kept separate from
 // main.js so that file stays about wiring filters/navigation, not also owning a modal
-// and a localStorage-backed setting.
+// and a localStorage backed setting.
 
-// localStorage, not `state`, since these are one-time device preferences that should
+// localStorage, not `state`, since these are one time device preferences that should
 // survive a page reload rather than reset with the rest of the browsing session.
 const REMEMBER_REVEAL_KEY = 'vnpicker.rememberRevealExplicit';
 const NEVER_BLUR_KEY = 'vnpicker.neverBlurExplicit';
@@ -27,7 +27,7 @@ function setRememberReveal(remembered){
   els.revealPrefCheckbox.checked = !remembered; // footer checkbox reads "Ask before revealing", the inverse framing
 }
 
-// coverImage.js checks this directly (see isSensitive there) so a never-blurred cover
+// coverImage.js checks this directly (see isSensitive there) so a never blurred cover
 // never gets the .sensitive class or a reveal button in the first place, rather than
 // this module having to reach into another module's rendering to undo it after the fact.
 export function neverBlurIsEnabled(){
@@ -52,7 +52,7 @@ function revealCover(){
 
 // Mirrors the isSensitive check coverImage.js runs on every showCover() call, just aimed
 // at the VN already on screen instead of the next one about to be shown. Needed because
-// turning blurring back on doesn't re-run showCover() by itself, without this the card on
+// turning blurring back on doesn't run showCover() again by itself, without this the card on
 // screen would stay unblurred until the next Next/Prev click happened to redraw it.
 function reblurCurrentIfSensitive(){
   const vn = state.list[state.index];
@@ -102,7 +102,7 @@ export function initRevealModal(){
   });
 
   // Unchecking (turning blur off) needs a confirmation, it skips the warning entirely on
-  // every title, no per-image asking. Re-checking (turning blur back on) doesn't, undoing
+  // every title, no asking per image. Checking it again (turning blur back on) doesn't, undoing
   // a safety default isn't something that needs to be defended against.
   const neverBlurModal = makeModal(els.neverBlurModal, els.neverBlurConfirm, {
     cancelBtn: els.neverBlurCancel,

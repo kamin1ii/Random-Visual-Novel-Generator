@@ -1,5 +1,5 @@
-// The one shared database connection, imported by both images.js (cover-key validation)
-// and generate.js (the actual queries), so there's a single read-only handle rather than
+// The one shared database connection, imported by both images.js (cover key validation)
+// and generate.js (the actual queries), so there's a single read only handle rather than
 // each module opening its own.
 
 import Database from 'better-sqlite3';

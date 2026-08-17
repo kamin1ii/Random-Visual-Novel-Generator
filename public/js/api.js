@@ -24,7 +24,7 @@ function shuffle(arr){
   return arr;
 }
 
-// Single-request version for when only a small pool is needed to pick ONE item from
+// Single request version for when only a small pool is needed to pick ONE item from
 // (like the startup placeholder pick), not a full list to browse. Scattering across
 // multiple draws (see runQuery below) only matters when someone's actually browsing
 // many titles from it, since only one item from this pool ever gets used, that concern
@@ -45,7 +45,7 @@ export async function fetchRandomPool(filters, poolSize){
 // How many independent random draws to split a list into. More draws means titles get
 // pulled from more scattered positions across the matching pool instead of one
 // contiguous block, since VNDB's IDs cluster somewhat by when a title was added, one
-// random page alone can still land on a run of related/same-era titles.
+// random page alone can still land on a run of related, same era titles.
 const DESIRED_DRAWS = 5;
 const MIN_CHUNK_SIZE = 5; // keeps draws from being pointlessly tiny on small lists
 
@@ -58,7 +58,7 @@ export async function runQuery(filters, listSize){
 
   let numDraws = Math.max(1, Math.min(DESIRED_DRAWS, effectiveSize, Math.floor(effectiveSize / MIN_CHUNK_SIZE) || 1));
   // safety bound in case effectiveSize is ever large enough that a chunk would exceed
-  // VNDB's single-request cap, not reachable with the sizes this app currently offers
+  // VNDB's single request cap, not reachable with the sizes this app currently offers
   while(Math.ceil(effectiveSize / numDraws) > PER_PAGE) numDraws++;
 
   const baseChunk = Math.floor(effectiveSize / numDraws);
@@ -115,8 +115,8 @@ export async function runQuery(filters, listSize){
 }
 
 // Calls the site's own Worker endpoint instead of VNDB directly, which runs one true
-// random sample against the D1 database (an indexed seek, not VNDB's page-based
-// approximation) and returns already-shuffled results, no client-side shuffle needed
+// random sample against the D1 database (an indexed seek, not VNDB's page based
+// approximation) and returns already shuffled results, no client side shuffle needed
 // here since the query itself doesn't return anything in a predictable order to begin with.
 export async function runQueryD1(filterState, listSize){
   const res = await fetch('/api/generate', {
@@ -136,8 +136,8 @@ export async function runQueryD1(filterState, listSize){
   // showCover()/proxiedImageUrl() were built around VNDB's own response shape, a nested
   // vn.image.url / vn.image.sexual object, reshaping here means the rest of the app
   // never needs to know or care which path the data actually came from. The
-  // reconstructed URL is never fetched as-is, only its .pathname gets used, matching
-  // exactly what proxiedImageUrl() already does for the live-API path.
+  // reconstructed URL is never fetched without modification, only its .pathname gets used, matching
+  // exactly what proxiedImageUrl() already does for the live API path.
   const results = (data.results || []).map(vn => ({
     ...vn,
     image: vn.image_path ? { url: 'https://t.vndb.org/' + vn.image_path, sexual: vn.sexual } : null,
@@ -147,7 +147,7 @@ export async function runQueryD1(filterState, listSize){
 }
 
 // The dump's own timestamp, so the site can show real "data last updated" info instead
-// of leaving it a mystery how fresh the D1-backed results are.
+// of leaving it a mystery how fresh the D1 backed results are.
 export async function fetchDbInfo(){
   try{
     const res = await fetch('/api/db-info');

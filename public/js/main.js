@@ -23,7 +23,7 @@ const noResultsModal = makeModal(els.noResultsModal, els.noResultsOk);
 const rateLimitModal = makeModal(els.rateLimitModal, els.rateLimitOk);
 const vndbApiModal = makeModal(els.vndbApiModal, els.vndbApiOk);
 
-// shows every time the box is checked, not just once, same disclaimer the info-icon
+// shows every time the box is checked, not just once, same disclaimer the info icon
 // tooltip next to it already gives, just surfaced more forcefully since it's easy to
 // miss a tooltip that only opens on hover/click
 els.useVndbApi.addEventListener('change', () => {
@@ -95,7 +95,7 @@ async function loadInitialPick(){
   try{
     let results;
     if(useVndb){
-      // tag 214 = Nukige, excluded server-side so this doesn't need a pool to filter
+      // tag 214 = Nukige, excluded server side so this doesn't need a pool to filter
       // locally, one candidate is enough since VNDB already guarantees it isn't nukige.
       // released<=today for the same reason buildFilters() always includes it. A starter
       // pick shouldn't ever be something that isn't out yet.
@@ -188,7 +188,7 @@ loadInitialPick();
 fetchDbInfo().then(info => {
   if(info.dumpTimestamp){
     // stored value already carries its own UTC offset (e.g. "2026-08-16 08:00:10+00"),
-    // strip it rather than blindly appending 'Z', which produced an invalid double-suffix
+    // strip it rather than blindly appending 'Z', which produced an invalid double suffix
     // string ("...+00Z") that some engines silently parse as Invalid Date
     const iso = info.dumpTimestamp.replace(' ', 'T').replace(/[+-]\d{2}(:?\d{2})?$/, '') + 'Z';
     const d = new Date(iso);
