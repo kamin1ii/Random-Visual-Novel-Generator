@@ -1,5 +1,5 @@
 // Shared IP resolution plus both rate limiters: rateLimitMiddleware guards the expensive
-// /api/generate endpoint, imageMissAllowed guards the R2-write (cache miss) path on
+// /api/generate endpoint, imageMissAllowed guards the disk-write (cache miss) path on
 // /img/*. Kept in one file since they share getClientIp and the same "in-process Map,
 // periodic sweep" shape.
 
@@ -88,10 +88,10 @@ export function rateLimitMiddleware(req, res, next){
   next();
 }
 
-// Separate, much higher-throughput limiter just for the R2-write (cache miss) path on
+// Separate, much higher-throughput limiter just for the disk-write (cache miss) path on
 // /img/*, a single page load can legitimately request dozens of covers. Cache hits aren't
-// limited at all, they're cheap, this only bounds how many NEW objects any one IP can
-// cause to be written into R2.
+// limited at all, they're cheap, this only bounds how many NEW files any one IP can
+// cause to be fetched and written to disk.
 const IMAGE_MISS_WINDOW_MS = 5 * 60 * 1000;
 const IMAGE_MISS_MAX = 100; // generous for real browsing, most covers are already cached after the first person loads them
 const imageMissState = new Map(); // ip -> timestamps[]

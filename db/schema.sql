@@ -11,7 +11,7 @@ CREATE TABLE vn (
   id TEXT PRIMARY KEY,              -- e.g. 'v17'
   title TEXT NOT NULL,
   alttitle TEXT,
-  image_path TEXT,                  -- e.g. 'cv/39/20339.jpg', matches the key format worker.js already uses for R2
+  image_path TEXT,                  -- e.g. 'cv/39/20339.jpg', matches the local cover mirror's layout and server/images.js's key format
   sexual REAL,                      -- 0-2 scale, same meaning as the live API's image.sexual
   olang TEXT NOT NULL,
   votecount INTEGER NOT NULL DEFAULT 0,
