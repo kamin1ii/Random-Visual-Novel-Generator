@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { db } from './db.js';
-import { getClientIp, imageMissAllowed } from './rateLimit.js';
+import { getClientIp, imageRequestAllowed, imageMissAllowed } from './rateLimit.js';
 
 // Purely for the console log below, has no effect on what gets served. The image path
 // alone isn't a reliable way to find the VN on a miss, that's exactly the case when the
@@ -44,6 +44,10 @@ imagesRouter.get('/img/*', async (req, res) => {
   const key = req.params[0];
   if(!key || !COVER_KEY_PATTERN.test(key)){
     return res.status(404).send('Unknown image path');
+  }
+
+  if(!imageRequestAllowed(getClientIp(req))){
+    return res.status(429).send('Too many image requests, slow down.');
   }
 
   const localPath = path.join(COVERS_DIR, key);

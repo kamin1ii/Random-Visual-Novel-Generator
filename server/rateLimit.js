@@ -1,7 +1,8 @@
-// Shared IP resolution plus both rate limiters: rateLimitMiddleware guards the expensive
-// /api/generate endpoint, imageMissAllowed guards the disk-write (cache miss) path on
-// /img/*. Kept in one file since they share getClientIp and the same "in-process Map,
-// periodic sweep" shape.
+// Shared IP resolution plus every rate limiter: rateLimitMiddleware guards the expensive
+// /api/generate endpoint, imageRequestAllowed guards every /img/* request, and
+// imageMissAllowed additionally guards just the disk-write (cache miss) path within that.
+// Kept in one file since they share getClientIp and (the two image limiters) the same
+// in-process Map, periodic sweep shape.
 
 export function getClientIp(req){
   // Cloudflare sits in front of Caddy and sets this on every proxied request, overwriting
@@ -88,32 +89,44 @@ export function rateLimitMiddleware(req, res, next){
   next();
 }
 
-// Separate, much higher-throughput limiter just for the disk-write (cache miss) path on
-// /img/*, a single page load can legitimately request dozens of covers. Cache hits aren't
-// limited at all, they're cheap, this only bounds how many NEW files any one IP can
-// cause to be fetched and written to disk.
-const IMAGE_MISS_WINDOW_MS = 5 * 60 * 1000;
-const IMAGE_MISS_MAX = 100; // generous for real browsing, most covers are already cached after the first person loads them
-const imageMissState = new Map(); // ip -> timestamps[]
+// Small reusable per-IP sliding-window limiter, same "in-process Map, periodic sweep"
+// shape as imageMissAllowed and imageRequestAllowed both need below, kept as one factory
+// instead of copy-pasting the window/sweep logic a second time.
+function createWindowLimiter(windowMs, max){
+  const state = new Map(); // ip -> timestamps[]
 
-export function imageMissAllowed(ip){
-  const now = Date.now();
-  const timestamps = imageMissState.get(ip) || [];
-  const fresh = timestamps.filter(t => now - t < IMAGE_MISS_WINDOW_MS);
-  if(fresh.length >= IMAGE_MISS_MAX){
-    imageMissState.set(ip, fresh);
-    return false;
-  }
-  fresh.push(now);
-  imageMissState.set(ip, fresh);
-  return true;
+  setInterval(() => {
+    const now = Date.now();
+    for(const [ip, timestamps] of state){
+      const fresh = timestamps.filter(t => now - t < windowMs);
+      if(fresh.length === 0) state.delete(ip);
+      else state.set(ip, fresh);
+    }
+  }, 60 * 1000).unref();
+
+  return function isAllowed(ip){
+    const now = Date.now();
+    const timestamps = state.get(ip) || [];
+    const fresh = timestamps.filter(t => now - t < windowMs);
+    if(fresh.length >= max){
+      state.set(ip, fresh);
+      return false;
+    }
+    fresh.push(now);
+    state.set(ip, fresh);
+    return true;
+  };
 }
 
-setInterval(() => {
-  const now = Date.now();
-  for(const [ip, timestamps] of imageMissState){
-    const fresh = timestamps.filter(t => now - t < IMAGE_MISS_WINDOW_MS);
-    if(fresh.length === 0) imageMissState.delete(ip);
-    else imageMissState.set(ip, fresh);
-  }
-}, 60 * 1000).unref();
+// General limiter on every /img/* request, hits included, not just misses. A cache hit is
+// cheap in CPU/IO terms, but it still costs real egress bandwidth off this VPS, unlike the
+// old Cloudflare/R2 setup, that bandwidth now counts against this server's own transfer
+// allowance, so even "cheap" requests are worth bounding against a scripted client
+// hammering already-cached images. Matches the 90-per-10-seconds rule this site ran under R2.
+export const imageRequestAllowed = createWindowLimiter(10 * 1000, 90);
+
+// Separate, much higher-throughput limiter just for the disk-write (cache miss) path on
+// /img/*, a single page load can legitimately request dozens of covers. This only bounds
+// how many NEW files any one IP can cause to be fetched and written to disk, on top of
+// the general limiter above, which every request already has to pass regardless.
+export const imageMissAllowed = createWindowLimiter(5 * 60 * 1000, 100);
