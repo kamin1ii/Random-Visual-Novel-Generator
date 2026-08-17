@@ -1,16 +1,24 @@
 // The /img/* route: serves VN cover art from a local mirror of VNDB's cover images
 // (synced by db/refresh-vndb-db.mjs from VNDB's own rsync feed), falling back to an
-// on-demand fetch for anything not in the mirror yet (a VN added after the last refresh),
-// caching that fetch to disk too so it's only ever fetched once. Three checks before
-// anything is served: the key must match VNDB's real cover-path shape, it must belong to
-// a VN actually in the local database (VNDB's mirror covers its whole catalog, not just
-// this site's filtered dataset), and cache-miss fallback requests are rate-limited per IP.
+// on-demand fetch for anything not in the mirror yet, either a VN added after the last
+// refresh or, more commonly, a cover VNDB has since changed to a different image than
+// what our last refresh captured (the frontend's VNDB-live-API mode shows VNDB's current
+// data directly, so its image URLs are only ever as stale as VNDB's live cover, not our
+// periodic snapshot). That fetch gets cached to disk too, so it's only ever fetched once.
+//
+// Two checks before anything is served: the key must match VNDB's real cover-path shape,
+// and cache-miss fallback requests are rate-limited per IP. There's deliberately no check
+// that the key belongs to a VN in our own database, that would reject real, current VNDB
+// covers whenever they've drifted from our last snapshot, exactly the live-API mode's
+// reason to exist. Serving any real VNDB cover matching the filename shape is an
+// acceptable trade here: images are local disk now, not metered storage, cache misses are
+// already rate-limited, and everything servable is still real VNDB content, never
+// caller-supplied bytes.
 
 import express from 'express';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import { db } from './db.js';
 import { getClientIp, imageMissAllowed } from './rateLimit.js';
 
 const COVERS_DIR = process.env.COVERS_DIR || '/opt/rvng/data/covers';
@@ -18,25 +26,16 @@ const VNDB_IMAGE_HOST = 'https://t.vndb.org'; // confirmed via testing, not docu
 
 // Matches refresh-vndb-db.mjs's imageIdToPath() output exactly, e.g. "cv/39/20339.jpg",
 // and VNDB's own rsync mirror layout. Without this, /img/* would happily fetch and cache
-// whatever path a caller asks for, an unauthenticated, unbounded way to make this server
-// copy arbitrary content from VNDB under a key of the caller's choosing.
+// whatever path a caller asks for, an unauthenticated way to make this server copy
+// arbitrary content from VNDB under a key of the caller's choosing (still real VNDB
+// content only, the host is hardcoded, but still worth constraining to the one real shape).
 const COVER_KEY_PATTERN = /^cv\/\d{2}\/\d+\.jpg$/;
-
-// VNDB's image mirror covers its entire catalog, not just the ~65k VNs in this site's own
-// filtered dataset, so a key merely matching the right shape isn't enough on its own, it
-// still lets someone cache and serve whatever real VNDB image they want under this domain.
-// This confirms the key belongs to a VN actually present in the local database before
-// anything gets read, fetched, or cached.
-const imagePathExistsStmt = db.prepare('SELECT 1 FROM vn WHERE image_path = ? LIMIT 1');
-function isKnownCoverKey(key){
-  return !!imagePathExistsStmt.get(key);
-}
 
 export const imagesRouter = express.Router();
 
 imagesRouter.get('/img/*', async (req, res) => {
   const key = req.params[0];
-  if(!key || !COVER_KEY_PATTERN.test(key) || !isKnownCoverKey(key)){
+  if(!key || !COVER_KEY_PATTERN.test(key)){
     return res.status(404).send('Unknown image path');
   }
 
