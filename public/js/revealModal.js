@@ -1,4 +1,6 @@
 import { els } from './dom.js?v=55';
+import { state } from './state.js?v=53';
+import { SENSITIVE_THRESHOLD } from './constants.js?v=53';
 
 // Self-contained "confirm before revealing explicit art" flow, kept separate from
 // main.js so that file stays about wiring filters/navigation, not also owning a modal
@@ -45,6 +47,20 @@ function setNeverBlur(enabled){
 function revealCover(){
   els.cover.classList.remove('sensitive');
   els.revealBtn.classList.remove('show');
+}
+
+// Mirrors the isSensitive check coverImage.js runs on every showCover() call, just aimed
+// at the VN already on screen instead of the next one about to be shown. Needed because
+// turning blurring back on doesn't re-run showCover() by itself, without this the card on
+// screen would stay unblurred until the next Next/Prev click happened to redraw it.
+function reblurCurrentIfSensitive(){
+  const vn = state.list[state.index];
+  if(!vn || !vn.image) return;
+  const isSensitive = vn.image.sexual != null && vn.image.sexual >= SENSITIVE_THRESHOLD;
+  if(isSensitive){
+    els.cover.classList.add('sensitive');
+    els.revealBtn.classList.add('show');
+  }
 }
 
 function openRevealModal(){
@@ -102,6 +118,7 @@ export function initRevealModal(){
       els.neverBlurModal.classList.add('open');
     } else {
       setNeverBlur(false);
+      reblurCurrentIfSensitive();
     }
   });
 
