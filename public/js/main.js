@@ -1,7 +1,7 @@
 import { els } from './dom.js?v=55';
 import { state } from './state.js?v=53';
 import { runQuery, fetchRandomPool, runQueryD1, fetchDbInfo } from './api.js?v=53';
-import { buildFilters, describeFilters, gatherFilterState } from './filters.js?v=54';
+import { buildFilters, describeFilters, gatherFilterState } from './filters.js?v=55';
 import { resetFilterUI } from './filterControls.js?v=53';
 import { makeTagPicker, renderChips } from './tagPicker.js?v=53';
 import { showCurrent, setStatus, renderActiveFilters, resetPreloadDirection, markWentBackward } from './render.js?v=54';
@@ -96,8 +96,11 @@ async function loadInitialPick(){
     let results;
     if(useVndb){
       // tag 214 = Nukige, excluded server side so this doesn't need a pool to filter
-      // locally, one candidate is enough since VNDB already guarantees it isn't nukige
-      const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"], ["tag","!=",[214,2,0]]];
+      // locally, one candidate is enough since VNDB already guarantees it isn't nukige.
+      // released<=today for the same reason buildFilters() always includes it: a starter
+      // pick shouldn't ever be something that isn't out yet.
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"], ["released","<=",todayStr], ["tag","!=",[214,2,0]]];
       ({ results } = await fetchRandomPool(filters, 1));
     } else {
       const filterState = { minVotes: 10, originalJapaneseOnly: true, excludeTags: [{ id: 214 }], hideSpoilerTagMatches: true };
