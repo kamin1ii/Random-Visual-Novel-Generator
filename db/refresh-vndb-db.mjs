@@ -265,7 +265,7 @@ function buildVnById(sexualByImageId){
       has_en_mtl: 0,
     });
   }
-  console.log(`  ${vnById.size} Japanese-original VNs kept`);
+  console.log(`  ${vnById.size} VNs parsed (all origin languages, "Originally Japanese" is a query-time filter, not applied here)`);
   return vnById;
 }
 
