@@ -1,7 +1,8 @@
-.slider-row{display:flex;align-items:center;gap:2px;}
+.slider-row{display:flex;align-items:center;gap:3px;}
 .slider-val{
   font-family:'IBM Plex Mono',monospace;
-  font-size:13px;color:var(--gold);min-width:38px;text-align:right;
+  font-size:13px;color:var(--gold);
+  width:30px;flex:0 0 30px;text-align:right; /* fixed width instead of min-width, so it can't shrink or grow the slider's own share of the row */
 }
 
 .tag-input-wrap{position:relative;}
