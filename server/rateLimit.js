@@ -119,7 +119,7 @@ function createWindowLimiter(windowMs, max){
 }
 
 // General limiter on every /img/* request, hits included, not just misses. A cache hit is
-// cheap in CPU/IO terms, but it still costs real egress bandwidth off this VPS, unlike the
+// cheap in CPU/IO terms, but it still costs real egress bandwidth off this server, unlike the
 // old Cloudflare/R2 setup, that bandwidth now counts against this server's own transfer
 // allowance, so even "cheap" requests are worth bounding against a scripted client
 // hammering already cached images. Matches the rule this site ran under R2, 90 requests
