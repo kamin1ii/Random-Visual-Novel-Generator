@@ -30,7 +30,7 @@
 
 .field-row{display:flex;gap:18px;}
 .field-row .field{margin-bottom:11px;min-width:0;}
-.field-row .score-field{flex:3;padding-right:4px;} /* small but deliberate, not zero: without any gap "Any" sits flush against the divider with nothing separating it from the field beside it, easy to misread as belonging there instead of to the slider on its left */
+.field-row .score-field{flex:4;padding-right:2px;} /* small but deliberate, not zero: without any gap "Any" sits flush against the divider with nothing separating it from the field beside it, easy to misread as belonging there instead of to the slider on its left */
 .field-row .votes-field{flex:2;}
 /* Without a visible boundary here, the score slider's value label had nothing marking
    where one field ends and the other begins, easy to misread as belonging to the field
