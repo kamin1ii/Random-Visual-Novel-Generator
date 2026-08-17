@@ -1,40 +1,65 @@
-import { els } from './dom.js?v=19';
-import { state } from './state.js?v=19';
-import { runQuery } from './api.js?v=19';
-import { buildFilters, describeFilters } from './filters.js?v=19';
-import { resetFilterUI } from './filterControls.js?v=19';
-import { makeTagPicker } from './tagPicker.js?v=19';
-import { showCurrent, setStatus, renderActiveFilters } from './render.js?v=19';
-import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=19';
+import { els } from './dom.js?v=53';
+import { state } from './state.js?v=53';
+import { runQuery, fetchRandomPool, runQueryD1, fetchDbInfo } from './api.js?v=53';
+import { buildFilters, describeFilters, gatherFilterState } from './filters.js?v=53';
+import { resetFilterUI } from './filterControls.js?v=53';
+import { makeTagPicker, renderChips } from './tagPicker.js?v=53';
+import { showCurrent, setStatus, renderActiveFilters, resetPreloadDirection, markWentBackward } from './render.js?v=53';
+import { initRevealModal, closeRevealModal, isRevealModalOpen, resetRevealPreference } from './revealModal.js?v=53';
 
 makeTagPicker(els.includeInput, els.includeSuggest, els.includeStatus, state.includeTags, els.includeChips, 'include');
 makeTagPicker(els.excludeInput, els.excludeSuggest, els.excludeStatus, state.excludeTags, els.excludeChips, 'exclude');
+// renders the default Nukige chip on load, chip rendering otherwise only happens on
+// add/remove/reset, without this the exclude filter would be silently active with no
+// visible chip until the person reset filters once
+renderChips(state.includeTags, els.includeChips, 'include');
+renderChips(state.excludeTags, els.excludeChips, 'exclude');
 
-// A small enough popup (toggle a class on OK/backdrop click/Escape) that it doesn't
-// warrant its own file the way revealModal.js does, that one manages a persisted
-// preference synced across two separate controls, this is just an alert-style dialog.
+// one small reusable modal helper instead of writing the same show/close/isOpen/
+// click-outside logic out twice, only the no-results modal needs a dynamic message
+function makeModal(modalEl, okBtn){
+  function show(){ modalEl.classList.add('open'); }
+  function close(){ modalEl.classList.remove('open'); }
+  function isOpen(){ return modalEl.classList.contains('open'); }
+  okBtn.addEventListener('click', close);
+  modalEl.addEventListener('click', (e) => {
+    if(e.target === modalEl) close();
+  });
+  return { show, close, isOpen };
+}
+
+const noResultsModal = makeModal(els.noResultsModal, els.noResultsOk);
+const rateLimitModal = makeModal(els.rateLimitModal, els.rateLimitOk);
+
 function showNoResultsModal(message){
   els.noResultsBody.textContent = message;
-  els.noResultsModal.classList.add('open');
+  noResultsModal.show();
 }
-function closeNoResultsModal(){
-  els.noResultsModal.classList.remove('open');
+
+let rateLimitedUntil = 0;
+const RATE_LIMIT_COOLDOWN_MS = 90000;
+
+function startRateLimitCooldown(){
+  rateLimitedUntil = Date.now() + RATE_LIMIT_COOLDOWN_MS;
+  rateLimitModal.show();
 }
-function isNoResultsModalOpen(){
-  return els.noResultsModal.classList.contains('open');
-}
-els.noResultsOk.addEventListener('click', closeNoResultsModal);
-els.noResultsModal.addEventListener('click', (e) => {
-  if(e.target === els.noResultsModal) closeNoResultsModal();
-});
 
 async function generateList(){
-  els.generateBtn.disabled = true; // prevents overlapping requests if clicked again mid-fetch
-  setStatus('Searching VNDB…');
+  if(Date.now() < rateLimitedUntil){
+    rateLimitModal.show(); // still cooling down, re-show without calling VNDB again
+    return;
+  }
+  els.generateBtn.disabled = true;
+  const useVndb = els.useVndbApi.checked;
+  setStatus(useVndb ? 'Searching VNDB…' : 'Searching…');
   try{
-    const filters = buildFilters();
     const listSize = parseInt(els.listSize.value, 10);
-    const { count, results } = await runQuery(filters, listSize);
+    const { count, results, debug } = useVndb
+      ? await runQuery(buildFilters(), listSize)
+      : await runQueryD1(gatherFilterState(), listSize);
+    if(debug){
+      console.log(`server generate: cache ${debug.cacheHit ? 'HIT' : 'MISS'} on count, ${debug.queryMs}ms query time`);
+    }
     if(!count){
       setStatus('No titles match those filters. Try loosening them.');
       showNoResultsModal('No titles match those filters. Try loosening them.');
@@ -47,64 +72,87 @@ async function generateList(){
     state.list = results;
     state.index = 0;
     state.isPlaceholder = false;
+    resetPreloadDirection();
     setStatus(count.toLocaleString() + ' titles match. Showing ' + results.length + ' of them.');
     renderActiveFilters(describeFilters());
     els.prevBtn.disabled = false;
     els.nextBtn.disabled = false;
     showCurrent();
   }catch(err){
-    setStatus(err.message || 'Something went wrong reaching VNDB.');
+    if(err.status === 429){
+      startRateLimitCooldown();
+      setStatus('Rate limit reached. Wait a minute or two before trying again.');
+    } else {
+      setStatus(err.message || 'Something went wrong.');
+    }
   }finally{
     els.generateBtn.disabled = false;
   }
 }
 
-// Runs on page load so there's something on screen before the person has touched any filter.
+// runs on page load, before anyone's touched a filter
 async function loadInitialPick(){
+  const useVndb = els.useVndbApi.checked;
   try{
-    const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"]];
-    const { results } = await runQuery(filters, 1);
+    let results;
+    if(useVndb){
+      // tag 214 = Nukige, excluded server-side so this doesn't need a pool to filter
+      // locally, one candidate is enough since VNDB already guarantees it isn't nukige
+      const filters = ["and", ["has_description","=",1], ["votecount",">=",10], ["olang","=","ja"], ["tag","!=",[214,2,0]]];
+      ({ results } = await fetchRandomPool(filters, 1));
+    } else {
+      const filterState = { minVotes: 10, originalJapaneseOnly: true, excludeTags: [{ id: 214 }], hideSpoilerTagMatches: true };
+      ({ results } = await runQueryD1(filterState, 1));
+    }
     if(results.length){
-      state.list = results;
+      state.list = [results[0]];
       state.index = 0;
-      state.isPlaceholder = true; // distinguishes this from a real generated list, disables nav/click-to-advance
-      setStatus('A random pick to start. Set filters on the left and generate your own list.');
+      state.isPlaceholder = true;
+      setStatus('A random pick to start. Filters are on the left, use them to generate a list.');
       showCurrent();
     } else {
       setStatus('Set your filters and generate a list to begin.');
     }
   }catch(err){
-    setStatus('Set your filters and generate a list to begin.');
+    if(err.status === 429){
+      startRateLimitCooldown();
+      setStatus('Please wait a minute or two before generating another list.');
+      els.titleMain.textContent = 'Rate limited';
+      els.titleAlt.textContent = '';
+      els.synopsis.textContent = 'The rate limit was reached while loading a starting pick. This isn\u2019t a missing cover. Nothing was fetched yet. Please wait a minute or two before generating another list.';
+    } else {
+      setStatus('Set your filters and generate a list to begin.');
+    }
   }
 }
 
 function goNext(){
   if(!state.list.length) return;
-  state.index = (state.index + 1) % state.list.length; // wraps back to the start past the last entry
+  state.index = (state.index + 1) % state.list.length;
   showCurrent();
 }
 
 function goPrev(){
   if(!state.list.length) return;
-  state.index = (state.index - 1 + state.list.length) % state.list.length; // avoids a negative index at the start
+  markWentBackward();
+  state.index = (state.index - 1 + state.list.length) % state.list.length;
   showCurrent();
 }
 
-// closest() check here is a backup, coverLink/vndbLink/revealBtn each already stop
-// propagation themselves, this just guards against that ever being removed by accident.
 els.card.addEventListener('click', (e) => {
   if(e.target.closest('#coverLink') || e.target.closest('#vndbLink') || e.target.closest('#revealBtn') || e.target.closest('.tag-more')) return;
   if(state.isPlaceholder) return;
   goNext();
 });
 
-// Listens on "document" rather than the card itself, so arrow keys work without first
-// clicking the card to focus it.
+// on document, not the card, so arrow keys work without clicking the card first
 document.addEventListener('keydown', (e) => {
-  // While either modal is open, arrow keys shouldn't advance the card behind it, and
-  // Escape should close whichever one is actually open rather than doing nothing.
-  if(isNoResultsModalOpen()){
-    if(e.key === 'Escape') closeNoResultsModal();
+  if(rateLimitModal.isOpen()){
+    if(e.key === 'Escape') rateLimitModal.close();
+    return;
+  }
+  if(noResultsModal.isOpen()){
+    if(e.key === 'Escape') noResultsModal.close();
     return;
   }
   if(isRevealModalOpen()){
@@ -112,16 +160,12 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if(state.isPlaceholder) return;
-  // skips VN navigation while typing anywhere, so this doesn't fight with the tag
-  // search's own arrow key handling or move the cursor in a number field
   const tag = document.activeElement.tagName;
-  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return; // don't hijack typing elsewhere
   if(e.key === 'ArrowRight'){ e.preventDefault(); goNext(); }
   if(e.key === 'ArrowLeft'){ e.preventDefault(); goPrev(); }
 });
 
-// Without stopPropagation, clicking the cover would also trigger the card's click
-// handler and advance to the next entry at the same moment the link opened.
 els.coverLink.addEventListener('click', (e) => { e.stopPropagation(); });
 els.vndbLink.addEventListener('click', (e) => { e.stopPropagation(); });
 
@@ -134,8 +178,19 @@ els.generateBtn.addEventListener('click', generateList);
 els.resetBtn.addEventListener('click', () => {
   resetFilterUI();
   els.activeFilters.innerHTML = '';
-  resetRevealPreference(); // back to asking before each explicit reveal
+  resetRevealPreference();
   setStatus('Filters reset. Generate a list to begin.');
 });
 
 loadInitialPick();
+
+fetchDbInfo().then(info => {
+  if(info.dumpTimestamp){
+    // stored value already carries its own UTC offset (e.g. "2026-08-16 08:00:10+00"),
+    // strip it rather than blindly appending 'Z', which produced an invalid double-suffix
+    // string ("...+00Z") that some engines silently parse as Invalid Date
+    const iso = info.dumpTimestamp.replace(' ', 'T').replace(/[+-]\d{2}(:?\d{2})?$/, '') + 'Z';
+    const d = new Date(iso);
+    els.dbLastUpdated.textContent = 'Database dump last updated ' + d.toLocaleDateString() + '.';
+  }
+});

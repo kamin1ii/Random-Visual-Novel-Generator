@@ -1,15 +1,40 @@
-import { els } from './dom.js?v=19';
-import { state } from './state.js?v=19';
-import { PLATFORM_LABELS, LENGTH_LABELS } from './constants.js?v=19';
-import { showCover, preloadAround } from './coverImage.js?v=19';
+import { els } from './dom.js?v=53';
+import { state } from './state.js?v=53';
+import { PLATFORM_LABELS, LENGTH_LABELS } from './constants.js?v=53';
+import { showCover, preloadAround, resetPreloadDirection, markWentBackward } from './coverImage.js?v=53';
+import { loadTags } from './tagPicker.js?v=53';
+
+export { resetPreloadDirection, markWentBackward };
+
+// D1 only returns {id, spoiler} per tag (names live in tags.json, already loaded
+// client-side for search, no reason to duplicate that data server-side). VNDB's live
+// API already returns full {name, category, spoiler, rating} objects directly, so this
+// is a no-op for that path, detected by whether name is already present.
+async function resolveTags(rawTags){
+  if(!Array.isArray(rawTags) || !rawTags.length) return [];
+  if(rawTags[0].name !== undefined) return rawTags;
+
+  const allTags = await loadTags();
+  const byId = new Map(allTags.map(t => [String(t.id), t]));
+  return rawTags.map(t => {
+    const meta = byId.get(String(t.id));
+    return {
+      id: t.id,
+      spoiler: t.spoiler,
+      name: meta ? meta.name : 'Unknown tag',
+      category: meta ? meta.category : 'cont',
+      rating: 0, // tags.json and D1 don't carry per-VN tag strength, only VNDB's live API does
+    };
+  });
+}
 
 export function cleanDescription(raw){
   if(!raw) return 'No synopsis on file for this title.';
   let s = raw
     .replace(/\[url=[^\]]*\]/gi,'')
     .replace(/\[\/url\]/gi,'')
-    .replace(/\[spoiler\]/gi,'').replace(/\[\/spoiler\]/gi,'') // keep the text, drop the spoiler tag itself
-    .replace(/\[[^\]]+\]/g,'') // catches any other VNDB formatting code not handled above
+    .replace(/\[spoiler\]/gi,'').replace(/\[\/spoiler\]/gi,'')
+    .replace(/\[[^\]]+\]/g,'') // any other VNDB formatting code
     .replace(/\r?\n+/g,' ')
     .replace(/\s{2,}/g,' ')
     .trim();
@@ -39,7 +64,7 @@ function renderStats(vn){
     const h = Math.round(vn.length_minutes/60);
     chips.push({ text: h > 0 ? h + 'h playtime' : vn.length_minutes + 'm playtime' });
   } else if(vn.length){
-    chips.push({ text: LENGTH_LABELS[vn.length] || '' }); // used only when no precise minute count exists
+    chips.push({ text: LENGTH_LABELS[vn.length] || '' }); // fallback when no precise minute count exists
   }
 
   if(Array.isArray(vn.platforms) && vn.platforms.length){
@@ -60,19 +85,33 @@ function renderStats(vn){
 
 const TAG_PREVIEW_COUNT = 6;
 
-// Only the top TAG_PREVIEW_COUNT tags show at first, with a "+N more" pill that expands
-// the rest in place. Expand state is local to this one render call (a plain closure
-// variable, not on `state`), so it naturally resets to collapsed on the next VN shown,
-// there's nothing to reset by hand.
 function renderTags(vn){
   els.tagRow.innerHTML = '';
   if(!Array.isArray(vn.tags)) return;
 
-  const tags = vn.tags
-    .filter(t => t.category === 'cont' && t.spoiler === 0) // skip trait/technical tags and spoiler-flagged ones
-    .sort((a,b) => (b.rating||0) - (a.rating||0)); // most agreed-upon tags first
+  const nonSpoilerTags = vn.tags.filter(t => t.category === 'cont' && t.spoiler === 0);
 
-  let expanded = false;
+  // Spoiler-flagged tags the person specifically searched for (include or exclude)
+  // are shown anyway, picking that tag themselves already means they know about it,
+  // this doesn't reveal anything they didn't already ask for. Every other spoiler tag
+  // stays hidden. No extra VNDB call needed, spoiler-flagged tags are already present
+  // in the same response, just filtered out of view by default.
+  // Our local tags.json stores bare integer IDs (214), but VNDB's live API returns tag
+  // IDs as prefixed strings in VN responses ("g214"), comparing them directly would
+  // never match, stripping any leading letters normalizes both sides to the same format.
+  function normalizeTagId(id){
+    return String(id).replace(/^\D+/, '');
+  }
+
+  const selectedTagIds = new Set([...state.includeTags, ...state.excludeTags].map(t => normalizeTagId(t.id)));
+  const selectedSpoilerTags = vn.tags.filter(t =>
+    t.category === 'cont' && t.spoiler > 0 && selectedTagIds.has(normalizeTagId(t.id))
+  );
+
+  const tags = [...nonSpoilerTags, ...selectedSpoilerTags]
+    .sort((a,b) => (b.rating||0) - (a.rating||0));
+
+  let expanded = false; // local to this render call, resets naturally on the next VN shown
 
   function draw(){
     els.tagRow.innerHTML = '';
@@ -91,33 +130,34 @@ function renderTags(vn){
       btn.className = 'tag tag-more';
       btn.textContent = expanded ? 'Show less' : '+' + remaining + ' more';
       btn.addEventListener('click', (e) => {
-        e.stopPropagation(); // otherwise this click would also advance the card to the next entry
+        e.stopPropagation();
         expanded = !expanded;
         draw();
       });
       els.tagRow.appendChild(btn);
     }
 
-    // Always present, regardless of how many "cont" tags there are: the filter above
-    // deliberately drops technical tags (ADV, Multiple Endings, Voiced Thoughts, etc.)
-    // and anything spoiler-flagged, so a title can have plenty more tags on VNDB than
-    // this row will ever show. This is the way out to see the rest, rather than a dead end.
+    // always shown: the filter above drops technical/spoiler tags, so there can be more
+    // on VNDB than this row ever displays, this is the way out instead of a dead end
     const allLink = document.createElement('a');
     allLink.className = 'tag tag-all-link';
     allLink.href = 'https://vndb.org/' + vn.id + '/tags#tags';
     allLink.target = '_blank';
     allLink.rel = 'noopener';
     allLink.textContent = 'All tags on VNDB ↗';
-    allLink.addEventListener('click', (e) => e.stopPropagation()); // otherwise this click would also advance the card
+    allLink.addEventListener('click', (e) => e.stopPropagation());
     els.tagRow.appendChild(allLink);
   }
 
   draw();
 }
 
-export function showCurrent(){
+let tagRenderToken = 0;
+
+export async function showCurrent(){
   const vn = state.list[state.index];
   if(!vn) return;
+  const myToken = ++tagRenderToken;
 
   els.counter.textContent = (state.index + 1) + ' / ' + state.list.length;
 
@@ -127,10 +167,13 @@ export function showCurrent(){
   showCover(vn);
 
   renderStats(vn);
-  renderTags(vn);
   els.vndbLink.href = 'https://vndb.org/' + vn.id;
   els.coverLink.href = 'https://vndb.org/' + vn.id;
-  els.dialogue.textContent = cleanDescription(vn.description);
+  els.synopsis.textContent = cleanDescription(vn.description);
 
   preloadAround(state.list, state.index);
+
+  const resolvedTags = await resolveTags(vn.tags);
+  if(myToken !== tagRenderToken) return; // a newer navigation already took over, don't overwrite its tags with stale ones
+  renderTags({ ...vn, tags: resolvedTags });
 }

@@ -15,17 +15,17 @@
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
 .chip{
   display:inline-flex;align-items:center;gap:6px;
-  font-size:12px;padding:4px 6px 4px 10px;border-radius:20px;
+  font-size:12px;padding:4px 6px 4px 10px;border-radius:10px;
 }
 .chip.include{background:rgba(91,155,213,.15);color:var(--accent);border:1px solid rgba(91,155,213,.3);}
 .chip.exclude{background:rgba(226,121,90,.13);color:var(--danger);border:1px solid rgba(226,121,90,.3);}
 .chip button{background:none;border:none;color:inherit;cursor:pointer;font-size:13px;line-height:1;padding:2px;}
 
 .suggest{
-  position:absolute;top:calc(100% + 4px);left:0;right:0;
+  position:fixed; /* positioned via JS (top/left/width) to track the input on screen, rather than relative to .tag-input-wrap, so it isn't clipped by .sidebar-fields' scroll boundary */
   background:var(--panel-2);
   border:1px solid var(--panel-edge);
-  border-radius:8px;overflow:hidden;z-index:10;
+  border-radius:8px;overflow:hidden;z-index:50;
   max-height:200px;overflow-y:auto;display:none;
   scrollbar-width:thin;
   scrollbar-color:var(--panel-edge) transparent;
@@ -34,6 +34,7 @@
 .suggest::-webkit-scrollbar-track{background:transparent;}
 .suggest::-webkit-scrollbar-thumb{background:var(--panel-edge);border-radius:20px;}
 .suggest::-webkit-scrollbar-thumb:hover{background:var(--gold-dim);}
+.suggest::-webkit-scrollbar-button{display:none;}
 .suggest.open{display:block;}
 .suggest button{
   display:block;width:100%;text-align:left;background:none;border:none;
@@ -45,7 +46,7 @@
 
 .length-grid{display:flex;flex-wrap:wrap;gap:6px;}
 .len-toggle{
-  font-size:11.5px;padding:6px 10px;border-radius:20px;
+  font-size:11.5px;padding:6px 10px;border-radius:8px;
   background:var(--panel-2);border:1px solid var(--panel-edge);
   color:var(--muted);cursor:pointer; /* also reused for the AND/OR mode toggle buttons, not just length */
 }
@@ -59,7 +60,7 @@
 .check-row.subtle-check label{font-size:12px;color:var(--muted);}
 
 .generate-btn{
-  width:100%;margin-top:10px;
+  width:100%;
   font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.04em;
   color:var(--bg-0);background:var(--gold);border:none;border-radius:10px;
   padding:11px;cursor:pointer;transition:background .15s ease, transform .15s ease;
