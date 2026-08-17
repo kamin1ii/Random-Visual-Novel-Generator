@@ -1,4 +1,4 @@
-import { els } from './dom.js?v=53';
+import { els } from './dom.js?v=54';
 import { state } from './state.js?v=53';
 import { runQuery, fetchRandomPool, runQueryD1, fetchDbInfo } from './api.js?v=53';
 import { buildFilters, describeFilters, gatherFilterState } from './filters.js?v=53';
@@ -33,6 +33,14 @@ function makeModal(modalEl, okBtn){
 
 const noResultsModal = makeModal(els.noResultsModal, els.noResultsOk);
 const rateLimitModal = makeModal(els.rateLimitModal, els.rateLimitOk);
+const vndbApiModal = makeModal(els.vndbApiModal, els.vndbApiOk);
+
+// shows every time the box is checked, not just once, same disclaimer the info-icon
+// tooltip next to it already gives, just surfaced more forcefully since it's easy to
+// miss a tooltip that only opens on hover/click
+els.useVndbApi.addEventListener('change', () => {
+  if(els.useVndbApi.checked) vndbApiModal.show();
+});
 
 function showNoResultsModal(message){
   els.noResultsBody.textContent = message;
