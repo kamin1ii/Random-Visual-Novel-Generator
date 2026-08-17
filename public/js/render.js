@@ -137,7 +137,7 @@ function renderTags(vn){
       els.tagRow.appendChild(btn);
     }
 
-    // always shown: the filter above drops technical/spoiler tags, so there can be more
+    // always shown, the filter above drops technical/spoiler tags, so there can be more
     // on VNDB than this row ever displays, this is the way out instead of a dead end
     const allLink = document.createElement('a');
     allLink.className = 'tag tag-all-link';
