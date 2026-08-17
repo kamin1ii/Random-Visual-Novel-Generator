@@ -69,10 +69,6 @@
   color:var(--muted);
   margin-bottom:4px;
 }
-.field .subnote{
-  font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.35;
-}
-
 .row{display:flex;gap:8px;}
 .row input{flex:1;min-width:0;} /* min-width:0 lets long content shrink instead of overflowing the row */
 
