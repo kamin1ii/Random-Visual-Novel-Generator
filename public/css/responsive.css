@@ -1,4 +1,4 @@
-/* Single breakpoint: below 900px the two-column layout no longer has room, so the page
+/* Single breakpoint. Below 900px the two-column layout no longer has room, so the page
    stacks into one column and lets the whole page scroll instead of relying on the
    desktop layout's internal scroll regions (sidebar, synopsis). */
 @media (max-width:900px){

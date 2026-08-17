@@ -75,7 +75,7 @@ export async function runQuery(filters, listSize){
   for(let i = 0; i < numDraws; i++){
     const chunkSize = baseChunk + (i < remainder ? 1 : 0); // spreads the remainder across the first few draws
     if(chunkSize <= 0) continue;
-    // Full pages only, same reasoning as before: a page sized to a chunk that isn't a
+    // Full pages only, same reasoning as before. A page sized to a chunk that isn't a
     // full page could land on a trailing partial page and return fewer than requested.
     const fullPages = Math.max(1, Math.floor(count / chunkSize));
 

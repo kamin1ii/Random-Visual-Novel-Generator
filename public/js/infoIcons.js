@@ -1,11 +1,11 @@
-// Compact stand-in for a subnote paragraph: a small "ⓘ" that shows its description in a
+// Compact stand-in for a subnote paragraph. A small "ⓘ" that shows its description in a
 // tooltip on hover (mouse) or click/tap (touch, and mouse too) instead of the description
 // always taking up its own line.
 //
 // position:fixed and JS-tracked, the same technique tagPicker.js's .suggest dropdown
 // already uses, since these icons sit inside .sidebar-fields' scrolling box on desktop
 // and a plain CSS-positioned tooltip would risk being clipped by that scroll boundary
-// depending on where the icon happens to be scrolled to. That alone isn't enough though:
+// depending on where the icon happens to be scrolled to. That alone isn't enough though.
 // .sidebar is position:sticky, and sticky unconditionally creates its own stacking
 // context regardless of z-index, so a tooltip left nested inside it stays trapped
 // competing for z-index only within that context, capped by wherever .sidebar itself
@@ -67,8 +67,8 @@ export function initInfoIcons(){
   });
 
   // Repositions on scroll instead of closing, so the tooltip stays anchored to its icon.
-  // capture:true catches both page scroll and the sidebar's internal scroll, since scroll
-  // doesn't bubble to window normally. rAF-throttled since scroll can fire faster than repaints.
+  // The capture option catches both page scroll and the sidebar's internal scroll, since
+  // scroll doesn't bubble to window normally. rAF-throttled since scroll can fire faster than repaints.
   let scrollRaf = null;
   document.addEventListener('scroll', () => {
     const openIcon = Array.from(icons).find(i => tooltips.get(i).classList.contains('open'));

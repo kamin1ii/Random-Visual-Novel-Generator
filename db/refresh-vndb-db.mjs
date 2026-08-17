@@ -11,13 +11,13 @@
 // database file. Run this on the VPS itself (it writes straight to the on-disk sqlite
 // file, no network database round trip).
 //
-// Setup (run once, on the VPS):
+// Setup, run once on the VPS.
 //   1. apt install zstd sqlite3 rsync (sqlite3 CLI not required by this script, useful
 //      for poking at the db by hand)
 //   2. npm install (installs better-sqlite3, from vnpicker's package.json)
 //   3. sqlite3 /opt/rvng/data/randomvn.db < schema.sql   (once, before the first run)
 //
-// Then, any time you want to refresh:
+// Then, any time you want to refresh.
 //   DB_PATH=/opt/rvng/data/randomvn.db node refresh-vndb-db.mjs
 // (DB_PATH defaults to /opt/rvng/data/randomvn.db if unset, matching server.js)
 //
@@ -149,7 +149,7 @@ function syncCoverImages(){
 // bare ids against it, tagPicker.js searches it for the include/exclude pickers), separate
 // from the main VNDB dump above and small enough (a few hundred KB) to just re-fetch
 // whole every run rather than diffing. Without this running alongside the main refresh,
-// tags.json silently drifts behind the VN data it's meant to label: any tag VNDB adds (or
+// tags.json silently drifts behind the VN data it's meant to label. Any tag VNDB adds (or
 // a VN gets newly tagged with) after tags.json was last built resolves to "Unknown tag"
 // client-side even though the VN's own row correctly has that tag id.
 // meta:true entries are category-header rows ("Theme", "Sexual Content" as a group), not
@@ -239,7 +239,7 @@ function buildVnById(sexualByImageId){
     const [id, image, c_image, olang, votecount, c_rating, , c_length, , lengthCategory, devstatus, , description] = r;
     // c_image ("computed") is VNDB's current canonical cover, image is the original
     // reference and goes stale whenever a VN's cover is later changed, confirmed against
-    // the live API: wherever the two differ, the live API always serves c_image, never
+    // the live API. Wherever the two differ, the live API always serves c_image, never
     // image. Affected ~45% of VNs (image and c_image differ), all silently showing a
     // stale cover under the local-DB path and a hard 404 under the live-API path (whose
     // image.url never matched our old image-preferring image_path). Falls back to image
@@ -310,8 +310,8 @@ function buildDefaultSpoilByTagId(){
 
 // Aggregates thousands of individual per-user tag votes down into one (vn, tag) -> vote/
 // spoiler summary. Matches VNDB's own tag_vn_calc() (code.blicky.net/yorhel/vndb,
-// sql/func.sql) on two points that weren't obvious from behavior alone:
-//   - Only "ignore" excludes a vote from the aggregate. "lie" doesn't: VNDB's query only
+// sql/func.sql) on two points that weren't obvious from behavior alone.
+//   - Only "ignore" excludes a vote from the aggregate. "lie" doesn't. VNDB's query only
 //     filters on "NOT tv.ignore", the lie flag is carried through into an aggregate boolean
 //     column of its own (majority-flagged-as-lie), it never removes a voter's vote/spoiler
 //     contribution. This script was excluding lie-flagged votes entirely, which could both
@@ -322,7 +322,7 @@ function buildDefaultSpoilByTagId(){
 //     negative voters, not the magnitude-weighted mean this script was using. A tag with a
 //     few strongly negative votes and many mildly positive ones can have avg <= 0 while
 //     still having more people vote it up than down, VNDB keeps that tag, this script was
-//     dropping it. Found via a real case: a title clearly tagged "Nukige" on VNDB's live
+//     dropping it. Found via a real case, a title clearly tagged "Nukige" on VNDB's live
 //     site (visible, spoiler 0) had zero rows for that tag locally at all.
 function aggregateTagVotes(vnById){
   console.log('Parsing and aggregating tags_vn...');
@@ -394,9 +394,9 @@ function buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId){
     if(agg.signSum <= 0) continue; // VNDB's real threshold, see the comment on aggregateTagVotes
     const [vid, tag] = key.split('|');
     // Matches VNDB's own tag_vn_calc() SQL function verbatim (code.blicky.net/yorhel/vndb,
-    // sql/func.sql): CASE WHEN count(spoiler)=0 THEN min(defaultspoil) WHEN avg(spoiler)>1.3
-    // THEN 2 WHEN avg(spoiler)>0.4 THEN 1 ELSE 0 END. Confirmed against a real case: a tag
-    // can have votes on it (voteCount>0, it clears the signSum<=0 skip above) while nobody
+    // sql/func.sql), this exact CASE expression, "WHEN count(spoiler)=0 THEN min(defaultspoil)
+    // WHEN avg(spoiler)>1.3 THEN 2 WHEN avg(spoiler)>0.4 THEN 1 ELSE 0". Confirmed against a
+    // real case, a tag can have votes on it (voteCount>0, it clears the signSum<=0 skip above) while nobody
     // has ever set an explicit spoiler rating on it for that VN (spoilerCount===0, spoiler
     // is optional per vote), in which case VNDB doesn't default to "not a spoiler", it falls
     // back to the tag's own defaultspoil, e.g. "Completely Unavoidable Heroine Death" is
@@ -499,16 +499,16 @@ function deriveReleaseFlags(vnById){
 
     const enInfo = englishReleaseInfo.get(relId);
     if(enInfo){
-      // Matches VNDB's own c_languages formula for this field: non-MTL, rtype isn't
+      // Matches VNDB's own c_languages formula for this field, non-MTL, rtype isn't
       // 'trial', and the release has actually come out (not just announced). Confirmed
-      // against a real case: a VN's only English release was an unofficial patch still
+      // against a real case, a VN's only English release was an unofficial patch still
       // "in-progress" per its own notes, released=TBA, whose rtype (complete) and non-MTL
       // English title otherwise looked identical to a real release, VNDB correctly leaves
       // it out of vn.languages for exactly this reason, this script wasn't checking either
       // the release date or trial status at all before.
       if(enInfo.hasEnNonMtl && rtype !== 'trial' && releaseIsReleasedById.get(relId)) vn.has_en_lang = 1;
       if(enInfo.hasMtl) vn.has_en_mtl = 1;
-      // Gated on hasEnNonMtl, not hasEn: confirmed empirically against the live API that
+      // Gated on hasEnNonMtl, not hasEn. Confirmed empirically against the live API that
       // VNDB's own release-level ["lang","=","en"] filter excludes MTL too, the same way
       // the vn-level "languages" field does (querying ["release","=",["and",["lang","=","en"],
       // ["rtype","=","complete"]]] for a VN whose only "complete" release's English title is
@@ -520,7 +520,7 @@ function deriveReleaseFlags(vnById){
       //
       // Also requires releaseIsReleasedById here, same as has_en_lang above. This is a
       // deliberate site policy choice, not a VNDB-parity fix like the rest of this
-      // function: VNDB's own release-level ["lang","=","en"] filter does NOT check
+      // function. VNDB's own release-level ["lang","=","en"] filter does NOT check
       // released<=today (confirmed empirically, a TBA release with rtype=complete still
       // matched it live), so this makes local results stricter than VNDB's own API on
       // purpose. "Full English release" checked should mean the English release is
