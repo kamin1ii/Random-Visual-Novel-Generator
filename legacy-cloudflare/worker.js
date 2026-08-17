@@ -251,7 +251,7 @@ async function fetchCount(env, whereClause, params, ctx){
 // returned, not names, the frontend already has the full tag list loaded locally
 // (tags.json) and resolves names from that, so this doesn't need to duplicate it here.
 // Chunked into groups of 100: D1 has a hard limit of 100 bound parameters per query,
-// and this binds one parameter per VN id, a single query for a 300-title list would
+// and this binds one parameter per VN id, a single query for a large title list would
 // blow past that limit entirely, this is what broke generates over 100 titles.
 const D1_MAX_BOUND_PARAMS = 100;
 
@@ -283,7 +283,7 @@ async function handleGenerate(request, env, ctx){
     return jsonResponse({ error: 'Invalid request body' }, 400);
   }
 
-  const listSize = Math.min(300, Math.max(1, parseInt(body.listSize, 10) || 50));
+  const listSize = Math.min(500, Math.max(1, parseInt(body.listSize, 10) || 50));
 
   let whereClause, params;
   try{
