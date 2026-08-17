@@ -31,14 +31,17 @@ import { mkdirSync, writeFileSync, readFileSync, rmSync, createWriteStream, exis
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { finished } from 'node:stream/promises';
+import { gunzipSync } from 'node:zlib';
 import Database from 'better-sqlite3';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const DUMP_URL = 'https://dl.vndb.org/dump/vndb-db-latest.tar.zst';
+const TAGS_DUMP_URL = 'https://dl.vndb.org/dump/vndb-tags-latest.json.gz';
 const WORK_DIR = path.join(__dirname, 'vndb-dump-work');
 const DB_PATH = process.env.DB_PATH || '/opt/rvng/data/randomvn.db';
 const COVERS_DIR = process.env.COVERS_DIR || '/opt/rvng/data/covers';
+const PUBLIC_TAGS_PATH = path.join(__dirname, '..', 'public', 'tags.json');
 const VNDB_RSYNC_COVERS = 'rsync://dl.vndb.org/vndb-img/cv/';
 
 function parseTSV(filePath, label){
@@ -133,6 +136,32 @@ function syncCoverImages(){
   // chmod, so only the actual app user gets write access, not literally everyone.
   execSync(`chown -R rvng:rvng "${COVERS_DIR}"`);
   console.log('  cover image sync complete.');
+}
+
+// public/tags.json is the client side tag name/search dump (render.js resolves vn_tags'
+// bare ids against it, tagPicker.js searches it for the include/exclude pickers), separate
+// from the main VNDB dump above and small enough (a few hundred KB) to just fetch it
+// whole every run rather than diffing. Without this running alongside the main refresh,
+// tags.json silently drifts behind the VN data it's meant to label: any tag VNDB adds (or
+// a VN gets newly tagged with) after tags.json was last built resolves to "Unknown tag"
+// client side even though the VN's own row correctly has that tag id.
+// meta:true entries are category header rows ("Theme", "Sexual Content" as a group), not
+// real tags any VN is ever tagged with, filtered out the same way the original one time
+// snapshot this replaces already did. Returns the excluded ids too, buildVnTagsWithHierarchy
+// below needs that same set to stop them from being stored against VNs in the first place.
+async function syncTagNames(){
+  console.log('Downloading latest VNDB tag list...');
+  const res = await fetch(TAGS_DUMP_URL);
+  if(!res.ok) throw new Error(`Tag list download failed: ${res.status}`);
+  const gzipped = Buffer.from(await res.arrayBuffer());
+  const allTags = JSON.parse(gunzipSync(gzipped).toString('utf-8'));
+  const metaTagIds = new Set(allTags.filter(t => t.meta).map(t => t.id));
+  const tags = allTags
+    .filter(t => !t.meta)
+    .map(t => ({ id: t.id, name: t.name, category: t.cat, aliases: t.aliases }));
+  writeFileSync(PUBLIC_TAGS_PATH, JSON.stringify(tags));
+  console.log(`  ${tags.length} tags written to ${PUBLIC_TAGS_PATH} (${metaTagIds.size} meta/category-header tags excluded)`);
+  return metaTagIds;
 }
 
 // Either uses the local file given as argv[2], or downloads the latest dump fresh.
@@ -262,7 +291,15 @@ function aggregateTagVotes(vnById){
 // undercount the live API for any tag that has children, worse for broad parent tags.
 // Every ancestor gets an implicit entry alongside the direct one, deduped against direct
 // entries by keeping whichever spoiler level is least restrictive.
-function buildVnTagsWithHierarchy(tagAgg){
+//
+// metaTagIds excludes VNDB's category header tags (id 1 "Theme", 20 "Character", 1107
+// "Story", etc, 65 total) from that ancestor walk. These aren't real tags a VN is ever
+// directly voted on, they're group headers that every real tag's ancestor chain
+// eventually climbs into (nearly every "cont" tag's chain reaches "Theme" at the root),
+// so without this filter almost every VN ends up with several of these headers stored
+// alongside its real tags, each rendering client side as "Unknown tag" since they're
+// deliberately absent from tags.json (see syncTagNames).
+function buildVnTagsWithHierarchy(tagAgg, metaTagIds){
   console.log('Parsing tags_parents (tag hierarchy)...');
   const tagParentRows = parseTSV(path.join(WORK_DIR, 'db/tags_parents'), 'tags_parents');
   // id, parent, main
@@ -304,6 +341,7 @@ function buildVnTagsWithHierarchy(tagAgg){
       // strips the leading "g" so this matches tags.json's bare integer id format exactly,
       // the same mismatch already found once in render.js, fixed here at the source instead
       const bareTagId = rawId.replace(/^\D+/, '');
+      if(metaTagIds.has(parseInt(bareTagId, 10))) continue;
       const dedupeKey = `${vid}|${bareTagId}`;
       const existing = finalByKey.get(dedupeKey);
       if(existing === undefined || spoiler < existing) finalByKey.set(dedupeKey, spoiler);
@@ -442,6 +480,8 @@ async function main(){
   rmSync(WORK_DIR, { recursive: true, force: true });
   mkdirSync(WORK_DIR, { recursive: true });
 
+  const metaTagIds = await syncTagNames();
+
   const archivePath = await resolveArchivePath();
   const dumpTimestamp = extractDumpTables(archivePath);
 
@@ -450,7 +490,7 @@ async function main(){
   resolveVnTitles(vnById);
 
   const tagAgg = aggregateTagVotes(vnById);
-  const vnTags = buildVnTagsWithHierarchy(tagAgg);
+  const vnTags = buildVnTagsWithHierarchy(tagAgg, metaTagIds);
 
   deriveReleaseFlags(vnById);
 
