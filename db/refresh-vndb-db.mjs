@@ -8,8 +8,8 @@
 // entirely inside one transaction (so a failed run doesn't leave a half loaded database).
 //
 // This does NOT touch server.js or the live site by itself, it only populates the
-// database file. Runs directly on the machine hosting the site, writing straight to the on disk sqlite
-// file, no network database round trip.
+// database file. Runs directly on the machine hosting the site, writing straight to
+// the on disk sqlite file, no network database round trip.
 //
 // One time setup, before the first run.
 //   1. apt install zstd sqlite3 rsync (sqlite3 CLI not required by this script, useful
