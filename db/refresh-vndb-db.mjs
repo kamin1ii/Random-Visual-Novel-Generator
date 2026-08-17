@@ -450,7 +450,16 @@ function deriveReleaseFlags(vnById){
     if(enInfo){
       if(enInfo.hasEnNonMtl) vn.has_en_lang = 1; // matches the live API's vn-level "languages" field, which excludes MTL
       if(enInfo.hasMtl) vn.has_en_mtl = 1;
-      if(enInfo.hasEn){
+      // Gated on hasEnNonMtl, not hasEn: confirmed empirically against the live API that
+      // VNDB's own release-level ["lang","=","en"] filter excludes MTL too, the same way
+      // the vn-level "languages" field does (querying ["release","=",["and",["lang","=","en"],
+      // ["rtype","=","complete"]]] for a VN whose only "complete" release's English title is
+      // machine-translated, with a separate non-MTL release that's only "partial", returns
+      // zero results). Gating on hasEn instead let a VN through as a false "full English
+      // release" whenever completeness and non-MTL English came from two DIFFERENT releases
+      // rather than the same one, e.g. a partial non-MTL patch plus an unrelated complete
+      // MTL release, neither of which is actually what "Full English release" means.
+      if(enInfo.hasEnNonMtl){
         vn.has_en_release_any = 1;
         if(rtype === 'complete') vn.has_en_release_complete = 1;
       }
