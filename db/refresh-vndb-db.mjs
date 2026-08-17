@@ -391,13 +391,20 @@ function deriveReleaseFlags(vnById){
   const releaseRows = parseTSV(path.join(WORK_DIR, 'db/releases'), 'releases');
   // id, gtin, olang, released, voiced, reso_x, reso_y, minage, ani_*, has_ero, patch, freeware, uncensored, official, catalog, notes, engine
   const releaseYearById = new Map(); // release id -> year (integer) or null
+  // VNDB's own c_languages formula (the VN level "languages" aggregate) requires
+  // released <= today, excluding announced but unreleased titles. VNDB represents those
+  // with a sentinel date far in the future (e.g. 99999999, "TBA"), which the 8-digit regex
+  // below happily matches, so without this a release that's only been announced (not
+  // actually out yet) could still count as "available in English", and its sentinel date
+  // would also produce a garbage release year (9999).
+  const todayYYYYMMDD = parseInt(new Date().toISOString().slice(0, 10).replace(/-/g, ''), 10);
+  const releaseIsReleasedById = new Map(); // release id -> boolean
   for(const r of releaseRows){
     const [id, , , released] = r;
-    if(released && /^\d{8}$/.test(released)){
-      releaseYearById.set(id, Math.floor(parseInt(released, 10) / 10000));
-    } else {
-      releaseYearById.set(id, null);
-    }
+    const releasedInt = released && /^\d{8}$/.test(released) ? parseInt(released, 10) : null;
+    const isReleased = releasedInt !== null && releasedInt <= todayYYYYMMDD;
+    releaseYearById.set(id, isReleased ? Math.floor(releasedInt / 10000) : null);
+    releaseIsReleasedById.set(id, isReleased);
   }
 
   console.log('Parsing releases_titles (English + MTL info, and all languages, per release)...');
@@ -448,7 +455,14 @@ function deriveReleaseFlags(vnById){
 
     const enInfo = englishReleaseInfo.get(relId);
     if(enInfo){
-      if(enInfo.hasEnNonMtl) vn.has_en_lang = 1; // matches the live API's vn-level "languages" field, which excludes MTL
+      // Matches VNDB's own c_languages formula for this field: non-MTL, rtype isn't
+      // 'trial', and the release has actually come out (not just announced). Confirmed
+      // against a real case: a VN's only English release was an unofficial patch still
+      // "in-progress" per its own notes, released=TBA, whose rtype (complete) and non MTL
+      // English title otherwise looked identical to a real release, VNDB correctly leaves
+      // it out of vn.languages for exactly this reason, this script wasn't checking either
+      // the release date or trial status at all before.
+      if(enInfo.hasEnNonMtl && rtype !== 'trial' && releaseIsReleasedById.get(relId)) vn.has_en_lang = 1;
       if(enInfo.hasMtl) vn.has_en_mtl = 1;
       // Gated on hasEnNonMtl, not hasEn: confirmed empirically against the live API that
       // VNDB's own release level ["lang","=","en"] filter excludes MTL too, the same way
