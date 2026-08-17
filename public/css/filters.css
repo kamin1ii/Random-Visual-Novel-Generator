@@ -15,12 +15,12 @@
 
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
 .chip{
-  display:inline-flex;align-items:center;gap:6px;
-  font-size:11px;padding:4px 6px 4px 10px;border-radius:10px;
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;padding:3px 5px 3px 9px;border-radius:10px; /* matches .tag's own 3px 9px box exactly, just a touch tighter on the right to make room for the x button */
 }
-.chip.include{background:rgba(91,155,213,.15);color:var(--accent);border:1px solid rgba(91,155,213,.3);}
-.chip.exclude{background:rgba(226,121,90,.13);color:var(--danger);border:1px solid rgba(226,121,90,.3);}
-.chip button{background:none;border:none;color:inherit;cursor:pointer;font-size:13px;line-height:1;padding:2px;}
+.chip.include{background:rgba(91,155,213,.12);color:var(--accent);border:1px solid rgba(91,155,213,.28);} /* same blue as .tag in the description panel */
+.chip.exclude{background:rgba(226,121,90,.12);color:var(--danger);border:1px solid rgba(226,121,90,.28);}
+.chip button{background:none;border:none;color:inherit;cursor:pointer;font-size:11px;line-height:1;padding:0;}
 
 .suggest{
   position:fixed; /* positioned via JS (top/left/width) to track the input on screen, rather than relative to .tag-input-wrap, so it isn't clipped by .sidebar-fields' scroll boundary */
