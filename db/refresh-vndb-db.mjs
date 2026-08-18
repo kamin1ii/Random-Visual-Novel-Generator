@@ -29,7 +29,7 @@
 import { execSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, createWriteStream, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { finished } from 'node:stream/promises';
 import { gunzipSync } from 'node:zlib';
 import Database from 'better-sqlite3';
@@ -69,7 +69,7 @@ function parseTSV(filePath, label){
 // itself uses real newlines and tabs as row/column separators. Without unescaping this,
 // a multi paragraph description's real paragraph breaks show up as the literal text
 // "\n\n" instead of an actual newline character.
-function unescapeTsvField(val){
+export function unescapeTsvField(val){
   return val
     .replace(/\\r/g, '\r')
     .replace(/\\n/g, '\n')
@@ -79,14 +79,14 @@ function unescapeTsvField(val){
 
 // Turns "cv20339" into "cv/39/20339.jpg", matching both the local cover mirror's layout
 // and the key format server.js expects (folder is the image number's last two digits).
-function imageIdToPath(imageId){
+export function imageIdToPath(imageId){
   if(!imageId || !imageId.startsWith('cv')) return null;
   const num = imageId.slice(2);
   const folder = num.slice(-2).padStart(2, '0');
   return `cv/${folder}/${num}.jpg`;
 }
 
-function stripFormatting(desc){
+export function stripFormatting(desc){
   if(!desc) return null;
   return desc
     .replace(/\[url=[^\]]*\]/gi, '')
@@ -230,6 +230,31 @@ function buildSexualByImageId(){
   return sexualByImageId;
 }
 
+// Raw 1-5 category vote from the dump. VNDB represents "no length set" as the literal
+// string "0" here (confirmed against the live API, which reports null for the same VN),
+// not "\N" like every other unset numeric field in this dump, "0" is still truthy in JS
+// so a plain ternary let it through as a real value.
+export function parseRawLengthCategory(lengthCategory){
+  return lengthCategory && lengthCategory !== '0' ? parseInt(lengthCategory, 10) : null;
+}
+
+// The raw 1-5 category vote can disagree with VNDB's own displayed "Play time" bucket for
+// the same VN, confirmed on a real title (v12150, category vote says Medium, but the site
+// shows "Very long (52h 6m)" and VNDB's own live length filter agrees with the site, not
+// the category field). Confirmed empirically against VNDB's live API across the exact
+// bucket boundaries (120, 600, 1800, 3000 minutes, each still belongs to the lower bucket,
+// the minute right after starts the next one) that VNDB's real filter computes the bucket
+// from length_minutes whenever it's set, only falling back to the raw category vote when
+// length_minutes is null.
+export function deriveLengthCategory(rawLengthCategory, lengthMinutes){
+  if(lengthMinutes == null) return rawLengthCategory;
+  if(lengthMinutes <= 120) return 1;
+  if(lengthMinutes <= 600) return 2;
+  if(lengthMinutes <= 1800) return 3;
+  if(lengthMinutes <= 3000) return 4;
+  return 5;
+}
+
 // The base vn_id -> VN record map that every later step fills in further.
 function buildVnById(sexualByImageId){
   console.log('Parsing vn table...');
@@ -245,11 +270,7 @@ function buildVnById(sexualByImageId){
     // image.url never matched our old image preferring image_path). Falls back to image
     // only when c_image itself is unset.
     const resolvedImage = c_image || image;
-    // Raw 1-5 category vote from the dump. VNDB represents "no length set" as the literal
-    // string "0" here (confirmed against the live API, which reports null for the same
-    // VN), not "\N" like every other unset numeric field in this dump, "0" is still
-    // truthy in JS so a plain ternary let it through as a real value.
-    const rawLengthCategory = lengthCategory && lengthCategory !== '0' ? parseInt(lengthCategory, 10) : null;
+    const rawLengthCategory = parseRawLengthCategory(lengthCategory);
     const lengthMinutes = c_length ? parseInt(c_length, 10) : null;
     vnById.set(id, {
       id,
@@ -258,17 +279,7 @@ function buildVnById(sexualByImageId){
       olang,
       votecount: parseInt(votecount, 10) || 0,
       rating: c_rating ? parseInt(c_rating, 10) / 10 : null,
-      // This raw category vote can disagree with VNDB's own displayed "Play time" bucket
-      // for the same VN, confirmed on a real title (v12150, category vote says Medium,
-      // but the site shows "Very long (52h 6m)" and VNDB's own live length filter agrees
-      // with the site, not the category field). Confirmed empirically against VNDB's live
-      // API across the exact bucket boundaries (120, 600, 1800, 3000 minutes, each still
-      // belongs to the lower bucket, the minute right after starts the next one) that VNDB's
-      // real filter computes the bucket from length_minutes whenever it's set, only falling
-      // back to this raw category vote when length_minutes is null.
-      length: lengthMinutes != null
-        ? (lengthMinutes <= 120 ? 1 : lengthMinutes <= 600 ? 2 : lengthMinutes <= 1800 ? 3 : lengthMinutes <= 3000 ? 4 : 5)
-        : rawLengthCategory,
+      length: deriveLengthCategory(rawLengthCategory, lengthMinutes),
       length_minutes: lengthMinutes, // real minutes value, was previously hardcoded to NULL
       devstatus: devstatus ? parseInt(devstatus, 10) : null,
       description: stripFormatting(description),
@@ -333,9 +344,10 @@ function buildDefaultSpoilByTagId(){
 //     still having more people vote it up than down, VNDB keeps that tag, this script was
 //     dropping it. Found via a real case, a title clearly tagged "Nukige" on VNDB's live
 //     site (visible, spoiler 0) had zero rows for that tag locally at all.
-function aggregateTagVotes(vnById){
-  console.log('Parsing and aggregating tags_vn...');
-  const tagVoteRows = parseTSV(path.join(WORK_DIR, 'db/tags_vn'), 'tags_vn');
+// Pure aggregation step, split out from the file reading below it so this exact logic
+// (the two points above that weren't obvious from behavior alone) can be unit tested
+// directly against a handful of synthetic rows instead of a real multi gigabyte dump.
+export function aggregateTagVoteRows(tagVoteRows, vnById){
   const tagAgg = new Map();
   for(let i = 0; i < tagVoteRows.length; i++){
     const [, tag, vid, , vote, spoiler, ignore] = tagVoteRows[i];
@@ -352,14 +364,32 @@ function aggregateTagVotes(vnById){
   return tagAgg;
 }
 
-// Parses the tag hierarchy and expands the aggregated direct votes into the final
-// vn_tags list, propagating each tag up to all of its ancestors. VNDB's live tag search
-// also matches any ancestor of a directly applied tag, filtering for "Fantasy" matches a
-// VN only tagged with a more specific child like "Fictional Beings" too, it doesn't
-// require a direct vote on "Fantasy" itself. Without this, local results systematically
-// undercount the live API for any tag that has children, worse for broad parent tags.
-// Every ancestor gets an implicit entry alongside the direct one, deduped against direct
-// entries by keeping whichever spoiler level is least restrictive.
+function aggregateTagVotes(vnById){
+  console.log('Parsing and aggregating tags_vn...');
+  const tagVoteRows = parseTSV(path.join(WORK_DIR, 'db/tags_vn'), 'tags_vn');
+  return aggregateTagVoteRows(tagVoteRows, vnById);
+}
+
+// child raw tag id -> Set of direct parent raw tag ids
+export function buildDirectParents(tagParentRows){
+  // id, parent, main
+  const directParents = new Map();
+  for(const r of tagParentRows){
+    const [id, parent] = r;
+    if(!directParents.has(id)) directParents.set(id, new Set());
+    directParents.get(id).add(parent);
+  }
+  return directParents;
+}
+
+// Expands the aggregated direct votes into the final vn_tags list, propagating each tag
+// up to all of its ancestors. VNDB's live tag search also matches any ancestor of a
+// directly applied tag, filtering for "Fantasy" matches a VN only tagged with a more
+// specific child like "Fictional Beings" too, it doesn't require a direct vote on
+// "Fantasy" itself. Without this, local results systematically undercount the live API
+// for any tag that has children, worse for broad parent tags. Every ancestor gets an
+// implicit entry alongside the direct one, deduped against direct entries by keeping
+// whichever spoiler level is least restrictive.
 //
 // metaTagIds excludes VNDB's category header tags (id 1 "Theme", 20 "Character", 1107
 // "Story", etc, 65 total) from that ancestor walk. These aren't real tags a VN is ever
@@ -368,16 +398,7 @@ function aggregateTagVotes(vnById){
 // so without this filter almost every VN ends up with several of these headers stored
 // alongside its real tags, each rendering client side as "Unknown tag" since they're
 // deliberately absent from tags.json (see syncTagNames).
-function buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId){
-  console.log('Parsing tags_parents (tag hierarchy)...');
-  const tagParentRows = parseTSV(path.join(WORK_DIR, 'db/tags_parents'), 'tags_parents');
-  // id, parent, main
-  const directParents = new Map(); // child raw tag id -> Set of direct parent raw tag ids
-  for(const r of tagParentRows){
-    const [id, parent] = r;
-    if(!directParents.has(id)) directParents.set(id, new Set());
-    directParents.get(id).add(parent);
-  }
+export function buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId, directParents){
   // Tags form a DAG (a tag can have more than one parent), so this walks every ancestor,
   // not just the immediate parent, memoized since the same tag gets asked about repeatedly
   // across many VNs.
@@ -439,9 +460,7 @@ function buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId){
 // Fills in released_year/languages/platforms/has_en_* on vnById in place, derived from
 // the releases tables (release year and English release status are release level facts
 // in VNDB's schema, not VN level, so they have to be rolled up here).
-function deriveReleaseFlags(vnById){
-  console.log('Parsing releases...');
-  const releaseRows = parseTSV(path.join(WORK_DIR, 'db/releases'), 'releases');
+export function deriveReleaseFlags(vnById, releaseRows, relTitleRows, relPlatformRows, relVnRows){
   // id, gtin, olang, released, voiced, reso_x, reso_y, minage, ani_*, has_ero, patch, freeware, uncensored, official, catalog, notes, engine
   const releaseYearById = new Map(); // release id -> year (integer) or null
   // VNDB's own c_languages formula (the VN level "languages" aggregate) requires
@@ -460,8 +479,6 @@ function deriveReleaseFlags(vnById){
     releaseIsReleasedById.set(id, isReleased);
   }
 
-  console.log('Parsing releases_titles (English + MTL info, and all languages, per release)...');
-  const relTitleRows = parseTSV(path.join(WORK_DIR, 'db/releases_titles'), 'releases_titles');
   // id, lang, mtl, title, latin
   const englishReleaseInfo = new Map(); // release id -> { hasEn: bool, hasEnNonMtl: bool, hasMtl: bool }
   const languagesByRelease = new Map(); // release id -> Set of all language codes present
@@ -479,8 +496,6 @@ function deriveReleaseFlags(vnById){
     if(mtl === 't') info.hasMtl = true;
   }
 
-  console.log('Parsing releases_platforms...');
-  const relPlatformRows = parseTSV(path.join(WORK_DIR, 'db/releases_platforms'), 'releases_platforms');
   // id, platform
   const platformsByRelease = new Map(); // release id -> Set of platform codes
   for(const r of relPlatformRows){
@@ -489,8 +504,6 @@ function deriveReleaseFlags(vnById){
     platformsByRelease.get(id).add(platform);
   }
 
-  console.log('Parsing releases_vn, deriving per-VN release flags...');
-  const relVnRows = parseTSV(path.join(WORK_DIR, 'db/releases_vn'), 'releases_vn');
   // id, vid, rtype
   for(const r of relVnRows){
     const [relId, vid, rtype] = r;
@@ -540,7 +553,6 @@ function deriveReleaseFlags(vnById){
       }
     }
   }
-  console.log('  release-derived flags computed');
 }
 
 // Replaces the vn/vn_tags tables and the dump timestamp in one transaction, so a failed
@@ -601,9 +613,20 @@ async function main(){
 
   const defaultSpoilByTagId = buildDefaultSpoilByTagId();
   const tagAgg = aggregateTagVotes(vnById);
-  const vnTags = buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId);
+  console.log('Parsing tags_parents (tag hierarchy)...');
+  const directParents = buildDirectParents(parseTSV(path.join(WORK_DIR, 'db/tags_parents'), 'tags_parents'));
+  const vnTags = buildVnTagsWithHierarchy(tagAgg, metaTagIds, defaultSpoilByTagId, directParents);
 
-  deriveReleaseFlags(vnById);
+  console.log('Parsing releases...');
+  const releaseRows = parseTSV(path.join(WORK_DIR, 'db/releases'), 'releases');
+  console.log('Parsing releases_titles (English + MTL info, and all languages, per release)...');
+  const relTitleRows = parseTSV(path.join(WORK_DIR, 'db/releases_titles'), 'releases_titles');
+  console.log('Parsing releases_platforms...');
+  const relPlatformRows = parseTSV(path.join(WORK_DIR, 'db/releases_platforms'), 'releases_platforms');
+  console.log('Parsing releases_vn, deriving per-VN release flags...');
+  const relVnRows = parseTSV(path.join(WORK_DIR, 'db/releases_vn'), 'releases_vn');
+  deriveReleaseFlags(vnById, releaseRows, relTitleRows, relPlatformRows, relVnRows);
+  console.log('  release-derived flags computed');
 
   loadDatabase(vnById, vnTags, dumpTimestamp);
 
@@ -614,4 +637,8 @@ async function main(){
   console.log('Refresh complete.');
 }
 
-main().catch(err => { console.error(err); process.exit(1); });
+// Guarded so importing this file (e.g. from unit tests, to reach its pure helper
+// functions) never triggers the actual pipeline, only running it directly does.
+if(process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href){
+  main().catch(err => { console.error(err); process.exit(1); });
+}
