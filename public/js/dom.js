@@ -3,6 +3,8 @@
 export const els = {
   minRating: document.getElementById('minRating'),
   minRatingVal: document.getElementById('minRatingVal'),
+  maxRating: document.getElementById('maxRating'),
+  maxRatingVal: document.getElementById('maxRatingVal'),
   minVotes: document.getElementById('minVotes'),
   englishOnly: document.getElementById('englishOnly'),
   includePartialEnglish: document.getElementById('includePartialEnglish'),

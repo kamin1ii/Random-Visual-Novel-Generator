@@ -14,6 +14,12 @@ export const PLATFORM_LABELS = {
 // VNDB's precise length_minutes isn't always available, this is the fallback 1-5 scale.
 export const LENGTH_LABELS = {1:'very short',2:'short',3:'medium',4:'long',5:'very long'};
 
+// Same thresholds VNDB itself computes length_minutes into this 1-5 scale with (confirmed
+// empirically against VNDB's live API, see db/refresh-vndb-db.mjs). Shown in place of the
+// bare category name whenever length_minutes itself isn't available, e.g. "10 - 30h
+// playtime", matching the "52h playtime" phrasing used when a precise count does exist.
+export const LENGTH_RANGES = {1:'< 2',2:'2 - 10',3:'10 - 30',4:'30 - 50',5:'> 50'};
+
 // Covers scoring at or above this get blurred behind a reveal button rather than shown outright.
 export const SENSITIVE_THRESHOLD = 1.2;
 

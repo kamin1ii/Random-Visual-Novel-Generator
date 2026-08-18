@@ -33,7 +33,7 @@
 <meta name="twitter:description" content="A random visual novel list generator and browser built on data from VNDB. Filter by score, tags, language, and length, generate a randomized list, and browse the results one at a time.">
 <meta name="twitter:image" content="https://i.postimg.cc/1zVgs299/randomvnss.png">
 <link rel="stylesheet" href="css/base.css?v=8">
-<link rel="stylesheet" href="css/layout.css?v=12">
+<link rel="stylesheet" href="css/layout.css?v=14">
 <link rel="stylesheet" href="css/filters.css?v=12">
 <link rel="stylesheet" href="css/card.css?v=6">
 <link rel="stylesheet" href="css/modal.css?v=2">
@@ -60,9 +60,29 @@
         </div>
       </div>
 
+      <div class="field score-field">
+        <label for="maxRating">Maximum score</label>
+        <div class="slider-row">
+          <input type="range" id="maxRating" min="0.5" max="10" step="0.5" value="10">
+          <span class="slider-val" id="maxRatingVal">Any</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row">
       <div class="field votes-field">
         <label for="minVotes">Minimum votes</label>
         <input type="number" id="minVotes" min="0" step="5" value="10">
+      </div>
+
+      <div class="field listsize-field">
+        <label for="listSize">List size <span class="info-icon" tabindex="0" role="img" aria-label="200 to 300 titles may take a few seconds to build.">ⓘ<span class="info-tooltip" aria-hidden="true">200 to 300 titles may take a few seconds to build.</span></span></label>
+        <select id="listSize">
+          <option value="50" selected>50 titles</option>
+          <option value="100">100 titles</option>
+          <option value="200">200 titles</option>
+          <option value="300">300 titles</option>
+        </select>
       </div>
     </div>
 
@@ -138,16 +158,6 @@
         <label for="hideSpoilerTagMatches">Don't match on spoiler tags</label>
         <span class="info-icon" tabindex="0" role="img" aria-label="Applies to include and exclude tags.">ⓘ<span class="info-tooltip" aria-hidden="true">Applies to include and exclude tags.</span></span>
       </div>
-    </div>
-
-    <div class="field">
-      <label for="listSize">List size <span class="info-icon" tabindex="0" role="img" aria-label="200 to 300 titles may take a few seconds to build.">ⓘ<span class="info-tooltip" aria-hidden="true">200 to 300 titles may take a few seconds to build.</span></span></label>
-      <select id="listSize">
-        <option value="50" selected>50 titles</option>
-        <option value="100">100 titles</option>
-        <option value="200">200 titles</option>
-        <option value="300">300 titles</option>
-      </select>
     </div>
 
     <div class="field">
@@ -271,6 +281,6 @@
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=64"></script>
+<script type="module" src="js/main.js?v=67"></script>
 </body>
 </html>

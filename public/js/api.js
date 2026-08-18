@@ -1,4 +1,4 @@
-import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=53';
+import { API, VN_FIELDS, PER_PAGE } from './constants.js?v=54';
 
 export async function vndbQuery(endpoint, body){
   const res = await fetch(API + '/' + endpoint, {
@@ -138,9 +138,15 @@ export async function runQueryD1(filterState, listSize){
   // never needs to know or care which path the data actually came from. The
   // reconstructed URL is never fetched without modification, only its .pathname gets used, matching
   // exactly what proxiedImageUrl() already does for the live API path.
+  //
+  // Same reasoning for released_year vs released. D1 returns just the year as a number
+  // (released_year), VNDB's live API returns a full date string (released), and
+  // render.js's renderStats() only ever reads vn.released, so without this the release
+  // year silently never rendered under the D1 path at all.
   const results = (data.results || []).map(vn => ({
     ...vn,
     image: vn.image_path ? { url: 'https://t.vndb.org/' + vn.image_path, sexual: vn.sexual } : null,
+    released: vn.released_year ? String(vn.released_year) : null,
   }));
 
   return { count: data.count || 0, results, debug: data.debug || null };

@@ -1,7 +1,7 @@
-import { els } from './dom.js?v=55';
+import { els } from './dom.js?v=56';
 import { state } from './state.js?v=53';
-import { PLATFORM_LABELS, LENGTH_LABELS } from './constants.js?v=53';
-import { showCover, preloadAround, resetPreloadDirection, markWentBackward } from './coverImage.js?v=58';
+import { PLATFORM_LABELS, LENGTH_LABELS, LENGTH_RANGES } from './constants.js?v=54';
+import { showCover, preloadAround, resetPreloadDirection, markWentBackward } from './coverImage.js?v=60';
 import { loadTags } from './tagPicker.js?v=53';
 
 export { resetPreloadDirection, markWentBackward };
@@ -64,7 +64,12 @@ function renderStats(vn){
     const h = Math.round(vn.length_minutes/60);
     chips.push({ text: h > 0 ? h + 'h playtime' : vn.length_minutes + 'm playtime' });
   } else if(vn.length){
-    chips.push({ text: LENGTH_LABELS[vn.length] || '' }); // fallback when no precise minute count exists
+    // Fallback when no precise minute count exists, phrased the same "playtime" way as
+    // the precise case above instead of the bare category name, which alone reads like
+    // an estimate got lost rather than a deliberate range.
+    const range = LENGTH_RANGES[vn.length];
+    if(range) chips.push({ text: `${range}h playtime` });
+    else if(LENGTH_LABELS[vn.length]) chips.push({ text: LENGTH_LABELS[vn.length] });
   }
 
   if(Array.isArray(vn.platforms) && vn.platforms.length){

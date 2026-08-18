@@ -121,6 +121,12 @@ function buildWhereClause(filters){
     params.push(Math.max(10, Math.round(minRating * 10)));
   }
 
+  const maxRating = parseFloat(filters.maxRating) || 10;
+  if(maxRating < 10){
+    conditions.push('rating <= ?');
+    params.push(Math.round(maxRating * 10));
+  }
+
   if(filters.originalJapaneseOnly){
     conditions.push("olang = 'ja'");
   }

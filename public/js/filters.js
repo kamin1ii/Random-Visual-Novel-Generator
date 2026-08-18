@@ -1,6 +1,6 @@
 import { state } from './state.js?v=53';
-import { els } from './dom.js?v=55';
-import { LENGTH_LABELS } from './constants.js?v=53';
+import { els } from './dom.js?v=56';
+import { LENGTH_LABELS } from './constants.js?v=54';
 
 // Raw UI state for the D1 backed path, separate from buildFilters() below (which builds
 // VNDB's specific nested JSON filter format for the live API path). The Worker does its
@@ -10,6 +10,7 @@ export function gatherFilterState(){
   return {
     minVotes: parseInt(els.minVotes.value, 10) || 0,
     minRating: parseFloat(els.minRating.value) || 0,
+    maxRating: parseFloat(els.maxRating.value) || 10,
     originalJapaneseOnly: els.originalJapaneseOnly.checked,
     englishOnly: els.englishOnly.checked,
     includePartialEnglish: els.includePartialEnglish.checked,
@@ -39,6 +40,9 @@ export function buildFilters(){
 
   const minRating = parseFloat(els.minRating.value);
   if(minRating > 0) clauses.push(["rating",">=",Math.max(10, Math.round(minRating*10))]); // VNDB uses 0-100 but rejects anything below 10, UI shows 0-9.5
+
+  const maxRating = parseFloat(els.maxRating.value);
+  if(maxRating < 10) clauses.push(["rating","<=",Math.round(maxRating*10)]);
 
   if(els.originalJapaneseOnly.checked) clauses.push(["olang","=","ja"]);
 
@@ -111,7 +115,10 @@ export function describeFilters(){
   const parts = [];
 
   const minRating = parseFloat(els.minRating.value);
-  if(minRating > 0) parts.push('Score ' + minRating.toFixed(1) + ' or higher');
+  const maxRating = parseFloat(els.maxRating.value);
+  if(minRating > 0 && maxRating < 10) parts.push('Score ' + minRating.toFixed(1) + ' to ' + maxRating.toFixed(1));
+  else if(minRating > 0) parts.push('Score ' + minRating.toFixed(1) + ' or higher');
+  else if(maxRating < 10) parts.push('Score ' + maxRating.toFixed(1) + ' or lower');
 
   const minVotes = parseInt(els.minVotes.value, 10) || 0;
   if(minVotes > 0) parts.push(minVotes + ' or more votes');

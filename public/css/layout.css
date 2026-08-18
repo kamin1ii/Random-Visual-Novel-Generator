@@ -32,6 +32,7 @@
 .field-row .field{margin-bottom:11px;min-width:0;}
 .field-row .score-field{flex:3.5;padding-right:2px;} /* small but deliberate, not zero. Without any gap "Any" sits flush against the divider with nothing separating it from the field beside it, easy to misread as belonging there instead of to the slider on its left */
 .field-row .votes-field{flex:2.5;} /* wider than a plain 4:2 split gives it, otherwise "Minimum votes" wraps onto two lines in its own label */
+.field-row .listsize-field{flex:2.5;} /* even split with votes-field, paired together below the score row */
 /* Without a visible boundary here, the score slider's value label had nothing marking
    where one field ends and the other begins, easy to misread as belonging to the field
    beside it instead of the one above it. Reset on mobile below, where the two fields

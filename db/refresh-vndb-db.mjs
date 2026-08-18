@@ -245,6 +245,12 @@ function buildVnById(sexualByImageId){
     // image.url never matched our old image preferring image_path). Falls back to image
     // only when c_image itself is unset.
     const resolvedImage = c_image || image;
+    // Raw 1-5 category vote from the dump. VNDB represents "no length set" as the literal
+    // string "0" here (confirmed against the live API, which reports null for the same
+    // VN), not "\N" like every other unset numeric field in this dump, "0" is still
+    // truthy in JS so a plain ternary let it through as a real value.
+    const rawLengthCategory = lengthCategory && lengthCategory !== '0' ? parseInt(lengthCategory, 10) : null;
+    const lengthMinutes = c_length ? parseInt(c_length, 10) : null;
     vnById.set(id, {
       id,
       image_path: imageIdToPath(resolvedImage),
@@ -252,15 +258,18 @@ function buildVnById(sexualByImageId){
       olang,
       votecount: parseInt(votecount, 10) || 0,
       rating: c_rating ? parseInt(c_rating, 10) / 10 : null,
-      // The 1-5 category scale. VNDB's dump represents "no length set" as the literal
-      // string "0" here (confirmed against the live API, which reports null for the same
-      // VN), not "\N" like every other unset numeric field in this dump, "0" is still
-      // truthy in JS so the ternary let it through as a real value. length IN (1,2,3,4,5)
-      // then silently excluded every one of these VNs even with every length checkbox on,
-      // since 0 isn't among them and SQL's IN never matches a literal 0 against that list
-      // (it would if these were genuinely NULL, but they weren't).
-      length: lengthCategory && lengthCategory !== '0' ? parseInt(lengthCategory, 10) : null,
-      length_minutes: c_length ? parseInt(c_length, 10) : null, // real minutes value, was previously hardcoded to NULL
+      // This raw category vote can disagree with VNDB's own displayed "Play time" bucket
+      // for the same VN, confirmed on a real title (v12150, category vote says Medium,
+      // but the site shows "Very long (52h 6m)" and VNDB's own live length filter agrees
+      // with the site, not the category field). Confirmed empirically against VNDB's live
+      // API across the exact bucket boundaries (120, 600, 1800, 3000 minutes, each still
+      // belongs to the lower bucket, the minute right after starts the next one) that VNDB's
+      // real filter computes the bucket from length_minutes whenever it's set, only falling
+      // back to this raw category vote when length_minutes is null.
+      length: lengthMinutes != null
+        ? (lengthMinutes <= 120 ? 1 : lengthMinutes <= 600 ? 2 : lengthMinutes <= 1800 ? 3 : lengthMinutes <= 3000 ? 4 : 5)
+        : rawLengthCategory,
+      length_minutes: lengthMinutes, // real minutes value, was previously hardcoded to NULL
       devstatus: devstatus ? parseInt(devstatus, 10) : null,
       description: stripFormatting(description),
       released_year: null,

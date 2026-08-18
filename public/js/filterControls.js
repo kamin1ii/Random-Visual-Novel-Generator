@@ -1,4 +1,4 @@
-import { els } from './dom.js?v=55';
+import { els } from './dom.js?v=56';
 import { state } from './state.js?v=53';
 import { renderChips } from './tagPicker.js?v=53';
 
@@ -11,6 +11,11 @@ els.minRating.addEventListener('input', () => {
   }
   const v = parseFloat(els.minRating.value);
   els.minRatingVal.textContent = v === 0 ? 'Any' : v.toFixed(1);
+});
+
+els.maxRating.addEventListener('input', () => {
+  const v = parseFloat(els.maxRating.value);
+  els.maxRatingVal.textContent = v === 10 ? 'Any' : v.toFixed(1);
 });
 
 els.lengthGrid.addEventListener('click', (e) => {
@@ -60,6 +65,8 @@ syncEnglishSubOptions();
 export function resetFilterUI(){
   els.minRating.value = 0;
   els.minRatingVal.textContent = 'Any';
+  els.maxRating.value = 10;
+  els.maxRatingVal.textContent = 'Any';
   els.minVotes.value = 10;
   els.englishOnly.checked = true;
   els.includePartialEnglish.checked = false;
