@@ -31,7 +31,7 @@ Each visual novel gets a random value assigned once, at import time, stored in a
 Visual novel data is sourced from [VNDB](https://vndb.org/).
 The database was imported from a VNDB database dump. VNDB's data and content remain subject to their respective licenses and terms.
 
-### Requirements
+## Requirements
 
 - Node.js 18+ 
 - npm
