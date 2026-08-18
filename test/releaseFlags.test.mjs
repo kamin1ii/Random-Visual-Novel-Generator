@@ -138,6 +138,38 @@ describe('deriveReleaseFlags', () => {
     assert.equal(vnById.get('v1').released_year, 2010);
   });
 
+  // Real bug (v61100): a trial demo chapter released in the past made this VN pass the
+  // baseline released_year IS NOT NULL filter even though its actual complete release is
+  // still TBA. VNDB's own site correctly treats it as unreleased, since its vn-level
+  // released date is computed the same way, excluding trial releases.
+  test('a trial release with a past date does not set released_year on its own', () => {
+    const vnById = new Map([['v1', makeVn()]]);
+    const releaseRows = [
+      ['rTrial', '', '', '20251216'],
+      ['rComplete', '', '', 'TBA'],
+    ];
+    const relVnRows = [
+      ['rTrial', 'v1', 'trial'],
+      ['rComplete', 'v1', 'complete'],
+    ];
+    deriveReleaseFlags(vnById, releaseRows, [], [], relVnRows);
+    assert.equal(vnById.get('v1').released_year, null);
+  });
+
+  test('a real complete release still sets released_year even when a trial release also exists', () => {
+    const vnById = new Map([['v1', makeVn()]]);
+    const releaseRows = [
+      ['rTrial', '', '', '20200101'],
+      ['rComplete', '', '', '20210601'],
+    ];
+    const relVnRows = [
+      ['rTrial', 'v1', 'trial'],
+      ['rComplete', 'v1', 'complete'],
+    ];
+    deriveReleaseFlags(vnById, releaseRows, [], [], relVnRows);
+    assert.equal(vnById.get('v1').released_year, 2021, 'the earlier trial date must not be picked over the later real release');
+  });
+
   test('languages and platforms accumulate across every release the VN has', () => {
     const vnById = new Map([['v1', makeVn()]]);
     const releaseRows = [['r1', '', '', PAST], ['r2', '', '', PAST]];

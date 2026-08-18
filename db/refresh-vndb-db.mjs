@@ -510,7 +510,12 @@ export function deriveReleaseFlags(vnById, releaseRows, relTitleRows, relPlatfor
     const vn = vnById.get(vid);
     if(!vn) continue;
 
-    const year = releaseYearById.get(relId);
+    // Excludes trial releases, the same way has_en_lang and has_en_release_any/complete
+    // already do below. Confirmed on a real case (v61100), a trial demo chapter released
+    // in the past made this VN pass the baseline released_year IS NOT NULL filter even
+    // though its actual complete release is still TBA, VNDB's own site correctly shows
+    // it as unreleased since its vn-level released date is computed the same way.
+    const year = rtype !== 'trial' ? releaseYearById.get(relId) : null;
     if(year && (vn.released_year === null || year < vn.released_year)) vn.released_year = year;
 
     const relLanguages = languagesByRelease.get(relId);
