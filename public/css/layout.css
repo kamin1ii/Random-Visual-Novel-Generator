@@ -28,17 +28,33 @@
   flex-direction:column;
 }
 
+/* Wraps the score row and the votes and list size row.
+   The divider below is drawn once on this wrapper.
+   A border on each row instead draws two segments with a visible gap between them. */
+.field-row-group{
+  position:relative;
+  --field-row-gap:11px; /* .field-row .field below reuses this value so the two cannot drift apart */
+}
+/* This line marks the boundary between the two columns.
+   Both rows share the same 18px flex gap so one fixed position lines up with both.
+   The bottom is trimmed by the gap variable because a flex item margin does not collapse outside its own box the way a block child margin does.
+   Without the trim the line would run past the boxes in the row beneath it. */
+.field-row-group::before{
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:var(--field-row-gap);
+  left:50%;
+  width:1px;
+  background:var(--panel-edge);
+}
+
 .field-row{display:flex;gap:18px;margin-bottom:9px;} /* matches the standalone .field rhythm below it, otherwise this row sits flush against the next field with no gap at all, most visible once it stacks into a single column on narrow screens */
-.field-row .field{margin-bottom:11px;min-width:0;}
+.field-row .field{margin-bottom:var(--field-row-gap);min-width:0;}
 .field-row .score-field{flex:3.5;padding-right:2px;} /* small but deliberate, not zero. Without any gap "Any" sits flush against the divider with nothing separating it from the field beside it, easy to misread as belonging there instead of to the slider on its left */
 .field-row .votes-field{flex:2.5;} /* wider than a plain 4:2 split gives it, otherwise "Minimum votes" wraps onto two lines in its own label */
 .field-row .listsize-field{flex:2.5;} /* even split with votes-field, paired together below the score row */
-/* Without a visible boundary here, the score slider's value label had nothing marking
-   where one field ends and the other begins, easy to misread as belonging to the field
-   beside it instead of the one above it. Reset on mobile below, where the two fields
-   stack instead of sitting side by side and a left border there would misread as nesting
-   votes under score rather than marking a column boundary that no longer exists. */
-.field-row .field + .field{border-left:1px solid var(--panel-edge);padding-left:18px;}
+.field-row .field + .field{padding-left:2px;} /* this mirrors score-field's own padding-right so both fields keep the same small clearance from the divider */
 
 /* Only the field list scrolls, the Generate/Reset buttons below are deliberately kept
    outside this scroll area so they're always visible without having to scroll down to
@@ -60,7 +76,11 @@
 .sidebar-actions{flex-shrink:0;padding-top:11px;padding-right:16px;} /* padding-right restores the spacing the buttons lost when .sidebar's own right padding moved to .sidebar-fields instead */
 
 .field{margin-bottom:9px;}
-.field:last-child{margin-bottom:0;}
+/* This is scoped to a direct child of .sidebar-fields.
+   Without that scope it also matches the second field inside a .field-row because that field is the last child of its own row.
+   Zeroing that field's margin instead of the true last field's margin broke the stretch math the divider above depends on.
+   The divider then grew past the field's visible content instead of ending flush with it. */
+.sidebar-fields > .field:last-child{margin-bottom:0;}
 .field label{
   display:block;
   font-family:'IBM Plex Mono',monospace;

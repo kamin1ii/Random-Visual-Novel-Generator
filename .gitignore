@@ -17,6 +17,9 @@ ehthumbs.db
 node_modules/
 randomvn-dump.sql
 
+# Built locally from randomvn-dump.sql so the server can run outside the VPS for testing
+db/local/
+
 # Local-only, hardcodes the VPS's real origin IP, publishing it would defeat the point of
 # keeping that IP hidden behind Cloudflare's proxy
 refresh-database.ps1

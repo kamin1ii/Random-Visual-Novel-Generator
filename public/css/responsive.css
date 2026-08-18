@@ -14,8 +14,9 @@
      field per row like every other field here. */
   .field-row{flex-direction:column;gap:0;}
   .field-row .score-field{padding-right:0;}
-  /* The border/indent on the second field marks a column boundary that only exists in
-     the side-by-side desktop layout, stacked here it just reads as votes being nested
-     under score instead of its own field, so it's reset off entirely. */
-  .field-row .field + .field{border-left:none;padding-left:0;}
+  /* The divider only makes sense in the side by side desktop layout.
+     Stacked here it would read as votes nested under score instead of its own field.
+     It is turned off entirely on narrow screens. */
+  .field-row-group::before{display:none;}
+  .field-row .field + .field{padding-left:0;}
 }

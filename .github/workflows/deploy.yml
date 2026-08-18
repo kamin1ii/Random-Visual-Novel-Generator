@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - public/**
+      - server/**
+      - db/schema.sql
+      - db/refresh-vndb-db.mjs
+      - package.json
+      - package-lock.json
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up deploy key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      # The live database lives in /opt/rvng/data not inside /opt/rvng/app so this step can never reach it.
+      # Every path below already lives entirely inside this repo so delete here only ever removes files this repo itself removed.
+      - name: Sync app files
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          KEY="ssh -i ~/.ssh/deploy_key"
+          rsync -az --delete -e "$KEY" public/ root@$HOST:/opt/rvng/app/public/
+          rsync -az --delete -e "$KEY" server/ root@$HOST:/opt/rvng/app/server/
+          rsync -az -e "$KEY" db/schema.sql db/refresh-vndb-db.mjs root@$HOST:/opt/rvng/app/db/
+          rsync -az -e "$KEY" package.json package-lock.json root@$HOST:/opt/rvng/app/
+
+      # Ownership is reset here because rsync run over ssh as root otherwise leaves the synced files owned by whatever numeric id the runner used rather than the rvng service account that actually needs to read them.
+      # The database driver compiles a native binary during install so it has to be installed on the server's own architecture rather than copied from the runner.
+      - name: Install dependencies and restart
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          ssh -i ~/.ssh/deploy_key root@$HOST '
+            set -e
+            cd /opt/rvng/app
+            chown -R rvng:rvng public server db/schema.sql db/refresh-vndb-db.mjs package.json package-lock.json
+            npm ci --omit=dev
+            systemctl restart rvng
+            sleep 2
+            curl -sf http://127.0.0.1:3000/ > /dev/null
+          '

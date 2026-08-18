@@ -51,38 +51,40 @@
 <div class="layout">
   <div class="sidebar">
     <div class="sidebar-fields">
-    <div class="field-row">
-      <div class="field score-field">
-        <label for="minRating">Minimum score</label>
-        <div class="slider-row">
-          <input type="range" id="minRating" min="0" max="9.5" step="0.5" value="0">
-          <span class="slider-val" id="minRatingVal">Any</span>
+    <div class="field-row-group">
+      <div class="field-row">
+        <div class="field score-field">
+          <label for="minRating">Minimum score</label>
+          <div class="slider-row">
+            <input type="range" id="minRating" min="0" max="9.5" step="0.5" value="0">
+            <span class="slider-val" id="minRatingVal">Any</span>
+          </div>
+        </div>
+
+        <div class="field score-field">
+          <label for="maxRating">Maximum score</label>
+          <div class="slider-row">
+            <input type="range" id="maxRating" min="0.5" max="10" step="0.5" value="10">
+            <span class="slider-val" id="maxRatingVal">Any</span>
+          </div>
         </div>
       </div>
 
-      <div class="field score-field">
-        <label for="maxRating">Maximum score</label>
-        <div class="slider-row">
-          <input type="range" id="maxRating" min="0.5" max="10" step="0.5" value="10">
-          <span class="slider-val" id="maxRatingVal">Any</span>
+      <div class="field-row">
+        <div class="field votes-field">
+          <label for="minVotes">Minimum votes</label>
+          <input type="number" id="minVotes" min="0" step="5" value="10">
         </div>
-      </div>
-    </div>
 
-    <div class="field-row">
-      <div class="field votes-field">
-        <label for="minVotes">Minimum votes</label>
-        <input type="number" id="minVotes" min="0" step="5" value="10">
-      </div>
-
-      <div class="field listsize-field">
-        <label for="listSize">List size <span class="info-icon" tabindex="0" role="img" aria-label="200 to 300 titles may take a few seconds to build.">ⓘ<span class="info-tooltip" aria-hidden="true">200 to 300 titles may take a few seconds to build.</span></span></label>
-        <select id="listSize">
-          <option value="50" selected>50 titles</option>
-          <option value="100">100 titles</option>
-          <option value="200">200 titles</option>
-          <option value="300">300 titles</option>
-        </select>
+        <div class="field listsize-field">
+          <label for="listSize">List size <span class="info-icon" tabindex="0" role="img" aria-label="200 to 300 titles may take a few seconds to build.">ⓘ<span class="info-tooltip" aria-hidden="true">200 to 300 titles may take a few seconds to build.</span></span></label>
+          <select id="listSize">
+            <option value="50" selected>50 titles</option>
+            <option value="100">100 titles</option>
+            <option value="200">200 titles</option>
+            <option value="300">300 titles</option>
+          </select>
+        </div>
       </div>
     </div>
 
