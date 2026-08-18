@@ -22,11 +22,9 @@ A random visual novel list generator and browser built on data from [VNDB](https
 
 ## How it works
 
-The project uses a local copy of the VNDB database rather than querying VNDB for every generation.
+The project restructures VNDB's own data rather than querying VNDB for every generation. VNDB's dump has their Postgres database in plain text COPY format, so a refresh script parses the relevant tables out of that, aggregates things like per user tag votes into one consensus per VN and tag, and loads the result into a much smaller SQLite database built just for this site's queries.
 
-Visual novel data is stored in SQLite. Cover images are cached separately, and the server handles generation and image requests.
-
-The generator uses a precomputed random value for each visual novel. This allows random entries to be selected with an indexed lookup instead of scanning the entire database.
+Each visual novel gets a random value assigned once, at import time, stored in an indexed column. Generating a list does an indexed seek starting from a random point in that column rather than scanning or sorting the whole table, so picking a random matching subset stays fast even as the dataset grows. Cover images are cached separately on disk, and the server handles both generation and image requests.
 
 ## Data
 
