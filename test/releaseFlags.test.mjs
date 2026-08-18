@@ -140,9 +140,10 @@ describe('deriveReleaseFlags', () => {
 
   // Real bug (v61100): a trial demo chapter released in the past made this VN pass the
   // baseline released_year IS NOT NULL filter even though its actual complete release is
-  // still TBA. VNDB's own site correctly treats it as unreleased, since its vn-level
-  // released date is computed the same way, excluding trial releases.
-  test('a trial release with a past date does not set released_year on its own', () => {
+  // still TBA. VNDB's own live filter agrees this VN is unreleased, confirmed directly
+  // (not just from the vn.released field, which turned out to have its own quirk, see the
+  // next test), since a non-trial release exists for it, just not out yet.
+  test('a trial release is ignored when the VN also has a non-trial release, even an unreleased one', () => {
     const vnById = new Map([['v1', makeVn()]]);
     const releaseRows = [
       ['rTrial', '', '', '20251216'],
@@ -154,6 +155,20 @@ describe('deriveReleaseFlags', () => {
     ];
     deriveReleaseFlags(vnById, releaseRows, [], [], relVnRows);
     assert.equal(vnById.get('v1').released_year, null);
+  });
+
+  // Real bug, the first fix was too strict. VNDB's own released<=today filter directly
+  // matched two real VNs (v68133, v68137) whose only ever release was a past dated trial,
+  // despite their vn.released field itself showing null, the same field vs filter split
+  // already found for the length category. VNDB only ignores a trial's date when a real
+  // (non-trial) release also exists to prefer instead, if a trial is the only release a VN
+  // has ever had, VNDB falls back to treating that as the release date.
+  test('a trial release counts as the release date when it is the only release the VN has ever had', () => {
+    const vnById = new Map([['v1', makeVn()]]);
+    const releaseRows = [['rTrial', '', '', PAST]];
+    const relVnRows = [['rTrial', 'v1', 'trial']];
+    deriveReleaseFlags(vnById, releaseRows, [], [], relVnRows);
+    assert.equal(vnById.get('v1').released_year, 2020);
   });
 
   test('a real complete release still sets released_year even when a trial release also exists', () => {

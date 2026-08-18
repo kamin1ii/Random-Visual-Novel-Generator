@@ -504,18 +504,33 @@ export function deriveReleaseFlags(vnById, releaseRows, relTitleRows, relPlatfor
     platformsByRelease.get(id).add(platform);
   }
 
+  // vid -> true if this VN has at least one release on record that isn't a trial,
+  // regardless of whether that release is out yet. Needed below, VNDB's own released<=today
+  // filter only ignores a trial release's date when the VN also has a real (non-trial)
+  // release to prefer instead, if a trial is the only release that has ever existed for a
+  // VN, VNDB falls back to treating that as the release date. Confirmed empirically, two
+  // VNs whose only release is a past dated trial (v68133, v68137) both matched VNDB's live
+  // released<=today filter directly, despite the vn.released field itself showing null for
+  // both, the same field vs filter split already found for the length category earlier.
+  const hasNonTrialRelease = new Set();
+  for(const r of relVnRows){
+    const [, vid, rtype] = r;
+    if(rtype !== 'trial') hasNonTrialRelease.add(vid);
+  }
+
   // id, vid, rtype
   for(const r of relVnRows){
     const [relId, vid, rtype] = r;
     const vn = vnById.get(vid);
     if(!vn) continue;
 
-    // Excludes trial releases, the same way has_en_lang and has_en_release_any/complete
-    // already do below. Confirmed on a real case (v61100), a trial demo chapter released
-    // in the past made this VN pass the baseline released_year IS NOT NULL filter even
-    // though its actual complete release is still TBA, VNDB's own site correctly shows
-    // it as unreleased since its vn-level released date is computed the same way.
-    const year = rtype !== 'trial' ? releaseYearById.get(relId) : null;
+    // Excludes a trial release's date only when this VN also has a non-trial release on
+    // record, matching VNDB's own fallback behavior above. Confirmed on a real case
+    // (v61100), a trial demo chapter released in the past made this VN pass the baseline
+    // released_year IS NOT NULL filter even though its actual complete release is still
+    // TBA and no trial-only fallback applies since a real release does exist for it.
+    const isTrialWithoutFallback = rtype === 'trial' && hasNonTrialRelease.has(vid);
+    const year = !isTrialWithoutFallback ? releaseYearById.get(relId) : null;
     if(year && (vn.released_year === null || year < vn.released_year)) vn.released_year = year;
 
     const relLanguages = languagesByRelease.get(relId);
