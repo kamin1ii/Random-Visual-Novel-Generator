@@ -5,7 +5,7 @@
 let tagsPromise = null;
 export function loadTags(){
   if(!tagsPromise){
-    tagsPromise = fetch('tags.json?v=1').then(res => res.json());
+    tagsPromise = fetch('tags.json').then(res => res.json());
   }
   return tagsPromise;
 }

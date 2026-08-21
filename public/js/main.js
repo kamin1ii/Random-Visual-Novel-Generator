@@ -1,13 +1,13 @@
-import { els } from './dom.js?v=56';
-import { state } from './state.js?v=53';
-import { runQuery, fetchRandomPool, runQueryD1, fetchDbInfo } from './api.js?v=55';
-import { buildFilters, describeFilters, gatherFilterState } from './filters.js?v=57';
-import { resetFilterUI } from './filterControls.js?v=54';
-import { makeTagPicker, renderChips } from './tagPicker.js?v=53';
-import { showCurrent, setStatus, renderActiveFilters, resetPreloadDirection, markWentBackward } from './render.js?v=56';
-import { initRevealModal, closeRevealModal, isRevealModalOpen } from './revealModal.js?v=60';
-import { initInfoIcons } from './infoIcons.js?v=54';
-import { makeModal } from './modal.js?v=1';
+import { els } from './dom.js';
+import { state } from './state.js';
+import { runQuery, fetchRandomPool, runQueryD1, fetchDbInfo } from './api.js';
+import { buildFilters, describeFilters, gatherFilterState } from './filters.js';
+import { resetFilterUI } from './filterControls.js';
+import { makeTagPicker, renderChips } from './tagPicker.js';
+import { showCurrent, setStatus, renderActiveFilters, resetPreloadDirection, markWentBackward } from './render.js';
+import { initRevealModal, closeRevealModal, isRevealModalOpen } from './revealModal.js';
+import { initInfoIcons } from './infoIcons.js';
+import { makeModal } from './modal.js';
 
 initInfoIcons();
 
@@ -53,9 +53,10 @@ async function generateList(){
   setStatus(useVndb ? 'Searching VNDB…' : 'Searching…');
   try{
     const listSize = parseInt(els.listSize.value, 10);
+    const filterState = gatherFilterState();
     const { count, results, debug } = useVndb
-      ? await runQuery(buildFilters(), listSize)
-      : await runQueryD1(gatherFilterState(), listSize);
+      ? await runQuery(buildFilters(filterState), listSize)
+      : await runQueryD1(filterState, listSize);
     if(debug){
       console.log(`server generate: cache ${debug.cacheHit ? 'HIT' : 'MISS'} on count, ${debug.queryMs}ms query time`);
     }
@@ -73,7 +74,7 @@ async function generateList(){
     state.isPlaceholder = false;
     resetPreloadDirection();
     setStatus(count.toLocaleString() + ' titles match. Showing ' + results.length + ' of them.');
-    renderActiveFilters(describeFilters());
+    renderActiveFilters(describeFilters(filterState, listSize));
     els.prevBtn.disabled = false;
     els.nextBtn.disabled = false;
     showCurrent();

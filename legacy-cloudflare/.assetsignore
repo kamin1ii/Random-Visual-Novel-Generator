@@ -1,6 +1,0 @@
-worker.js
-wrangler.toml
-README.md
-.gitignore
-.git/
-node_modules/

@@ -31,6 +31,13 @@ const COMPUTE_BUDGET_WINDOW_MS = 60 * 1000;
 const COMPUTE_BUDGET_MS = 1000;
 const REQUEST_TIMEOUT_MS = 3000;
 
+// The same "drop timestamps older than windowMs" check every sliding window limiter in
+// this file needs, factored out so the four call sites below can't drift into subtly
+// different window math.
+function pruneWindow(timestamps, now, windowMs){
+  return timestamps.filter(t => now - t < windowMs);
+}
+
 const rateLimitState = new Map(); // ip -> { requestTimestamps: number[], computeMs: number, computeWindowStart: number }
 
 function getRateState(ip){
@@ -46,7 +53,7 @@ function getRateState(ip){
 setInterval(() => {
   const now = Date.now();
   for(const [ip, state] of rateLimitState){
-    state.requestTimestamps = state.requestTimestamps.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+    state.requestTimestamps = pruneWindow(state.requestTimestamps, now, RATE_LIMIT_WINDOW_MS);
     if(state.requestTimestamps.length === 0 && now - state.computeWindowStart > COMPUTE_BUDGET_WINDOW_MS){
       rateLimitState.delete(ip);
     }
@@ -58,7 +65,7 @@ export function rateLimitMiddleware(req, res, next){
   const now = Date.now();
   const state = getRateState(ip);
 
-  state.requestTimestamps = state.requestTimestamps.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+  state.requestTimestamps = pruneWindow(state.requestTimestamps, now, RATE_LIMIT_WINDOW_MS);
   if(state.requestTimestamps.length >= RATE_LIMIT_MAX_REQUESTS){
     res.set('Retry-After', '60');
     return res.status(429).json({ error: 'Too many requests, slow down.' });
@@ -98,7 +105,7 @@ function createWindowLimiter(windowMs, max){
   setInterval(() => {
     const now = Date.now();
     for(const [ip, timestamps] of state){
-      const fresh = timestamps.filter(t => now - t < windowMs);
+      const fresh = pruneWindow(timestamps, now, windowMs);
       if(fresh.length === 0) state.delete(ip);
       else state.set(ip, fresh);
     }
@@ -107,7 +114,7 @@ function createWindowLimiter(windowMs, max){
   return function isAllowed(ip){
     const now = Date.now();
     const timestamps = state.get(ip) || [];
-    const fresh = timestamps.filter(t => now - t < windowMs);
+    const fresh = pruneWindow(timestamps, now, windowMs);
     if(fresh.length >= max){
       state.set(ip, fresh);
       return false;

@@ -622,9 +622,9 @@ async function main(){
   rmSync(WORK_DIR, { recursive: true, force: true });
   mkdirSync(WORK_DIR, { recursive: true });
 
-  const metaTagIds = await syncTagNames();
-
-  const archivePath = await resolveArchivePath();
+  // Independent downloads, neither reads the other's result, and they write to separate
+  // paths (PUBLIC_TAGS_PATH vs DUMP_CACHE_DIR), so there's nothing to serialize here.
+  const [metaTagIds, archivePath] = await Promise.all([syncTagNames(), resolveArchivePath()]);
   const dumpTimestamp = extractDumpTables(archivePath);
 
   const sexualByImageId = buildSexualByImageId();

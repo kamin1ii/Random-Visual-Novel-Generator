@@ -1,8 +1,8 @@
-import { els } from './dom.js?v=56';
-import { state } from './state.js?v=53';
-import { PLATFORM_LABELS, LENGTH_LABELS, LENGTH_RANGES } from './constants.js?v=54';
-import { showCover, preloadAround, resetPreloadDirection, markWentBackward } from './coverImage.js?v=60';
-import { loadTags } from './tagPicker.js?v=53';
+import { els } from './dom.js';
+import { state } from './state.js';
+import { PLATFORM_LABELS, LENGTH_LABELS, LENGTH_RANGES } from './constants.js';
+import { showCover, preloadAround, resetPreloadDirection, markWentBackward } from './coverImage.js';
+import { loadTags } from './tagPicker.js';
 
 export { resetPreloadDirection, markWentBackward };
 

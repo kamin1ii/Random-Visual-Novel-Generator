@@ -1,6 +1,7 @@
-// The one shared database connection, imported by both images.js (cover key validation)
-// and generate.js (the actual queries), so there's a single read only handle rather than
-// each module opening its own.
+// The shared read only connection on the main thread, imported by both images.js (cover
+// key validation) and generate.js (query building, not the queries themselves). The
+// actual /api/generate queries run in queryWorker.js, which opens its own separate
+// connection per worker thread since a better-sqlite3 handle can't cross that boundary.
 
 import Database from 'better-sqlite3';
 

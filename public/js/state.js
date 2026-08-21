@@ -11,3 +11,15 @@ export const state = {
   index: 0,
   isPlaceholder: true // true for the starter pick shown before the user generates a real list
 };
+
+// tagPicker.js's makeTagPicker() closures capture state.includeTags/excludeTags by
+// reference at setup time in main.js, and push/splice into that exact reference on every
+// add or remove. Clearing has to go through these functions, which mutate in place
+// (length = 0), rather than state.includeTags = [], which would silently swap in a new
+// array the picker closures never see and leave them pushing into an array nothing else reads.
+export function clearIncludeTags(){
+  state.includeTags.length = 0;
+}
+export function clearExcludeTags(){
+  state.excludeTags.length = 0;
+}

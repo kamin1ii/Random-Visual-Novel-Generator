@@ -23,5 +23,12 @@ export const LENGTH_RANGES = {1:'< 2',2:'2 - 10',3:'10 - 30',4:'30 - 50',5:'> 50
 // Covers scoring at or above this get blurred behind a reveal button rather than shown outright.
 export const SENSITIVE_THRESHOLD = 1.2;
 
+// Shared by coverImage.js (deciding a freshly shown cover's initial blur state) and
+// revealModal.js (re-checking the cover already on screen when blurring gets turned back
+// on), so the two can't independently drift on what "sensitive" means.
+export function isSensitiveCover(vn){
+  return vn.image?.sexual != null && vn.image.sexual >= SENSITIVE_THRESHOLD;
+}
+
 // VNDB's hard cap per request, anything larger has to be split across multiple calls.
 export const PER_PAGE = 100;

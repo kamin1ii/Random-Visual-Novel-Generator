@@ -1,7 +1,4 @@
-// Entry point. App setup, middleware, mounts the route modules, serves the static site,
-// and listens. Node/Express replacement for legacy-cloudflare/worker.js, used now that the
-// site is hosted directly on this Node server instead of Cloudflare Workers. worker.js is left in
-// place as a rollback path back to Cloudflare Workers/Pages.
+// Entry point. App setup, middleware, mounts the route modules, serves the static site, and listens.
 
 import express from 'express';
 import path from 'node:path';

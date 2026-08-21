@@ -1,7 +1,7 @@
-import { els } from './dom.js?v=56';
-import { state } from './state.js?v=53';
-import { SENSITIVE_THRESHOLD } from './constants.js?v=54';
-import { makeModal } from './modal.js?v=1';
+import { els } from './dom.js';
+import { state } from './state.js';
+import { isSensitiveCover } from './constants.js';
+import { makeModal } from './modal.js';
 
 // Self contained "confirm before revealing explicit art" flow, kept separate from
 // main.js so that file stays about wiring filters/navigation, not also owning a modal
@@ -57,8 +57,7 @@ function revealCover(){
 function reblurCurrentIfSensitive(){
   const vn = state.list[state.index];
   if(!vn || !vn.image) return;
-  const isSensitive = vn.image.sexual != null && vn.image.sexual >= SENSITIVE_THRESHOLD;
-  if(isSensitive){
+  if(isSensitiveCover(vn)){
     els.cover.classList.add('sensitive');
     els.revealBtn.classList.add('show');
   }
